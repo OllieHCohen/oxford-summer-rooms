@@ -131,7 +131,7 @@
     /* Rooms */
     .rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; padding: 18px 0 4px; }
     .room { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; background: #fff; }
-    .room-photo { height: 170px; width: 100%; object-fit: cover; background: #e9ecf3; cursor: zoom-in; }
+    .room-photo { height: 170px; width: 100%; object-fit: cover; background: #e9ecf3; }
     .room-photo-wrap { position: relative; }
     .room-photo-count {
       position: absolute; right: 10px; bottom: 10px;
@@ -506,12 +506,9 @@
         ? bookable.map(w => `<div class="date-window">${fmtDate(w.window_start)} – ${fmtDate(w.window_end)} <span class="nights">· up to ${nightsBetween(w.window_start, w.window_end)} nights</span></div>`).join('')
         : `<div class="date-window" style="color:var(--muted)">No dates of 2+ weeks currently available</div>`;
 
-      const photoGid = photos.length ? registerGallery(photos) : null;
+      // Room cards show only the single main photo — no gallery / no other photos.
       const photoHtml = photos.length
-        ? `<div class="room-photo-wrap">
-             <img class="room-photo" src="${esc(photos[0].url)}" alt="${esc(name)}" loading="lazy" data-gallery="${photoGid}" data-index="0">
-             ${photos.length > 1 ? `<span class="room-photo-count">📷 ${photos.length}</span>` : ''}
-           </div>`
+        ? `<div class="room-photo-wrap"><img class="room-photo" src="${esc(photos[0].url)}" alt="${esc(name)}" loading="lazy"></div>`
         : `<div class="room-photo"></div>`;
 
       const extras = [];
