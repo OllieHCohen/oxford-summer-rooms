@@ -52,7 +52,7 @@
     }
 
     /* ---- Listings ---- */
-    .listings { max-width: 1100px; margin: 0 auto; padding: 12px clamp(14px, 4vw, 20px) 80px; }
+    .listings { max-width: 1100px; margin: 0 auto; padding: 12px clamp(14px, 4vw, 20px) clamp(40px, 6vw, 64px); }
 
     .listings-head {
       display: flex; align-items: baseline; justify-content: space-between;
@@ -177,7 +177,25 @@
     .location.map-failed .map-img, .location.map-failed .map-overlay { display: none; }
     .location.map-failed .map-fallback { display: flex; }
 
-    footer { text-align: center; color: var(--muted); font-size: 12px; padding: 0 20px 48px; }
+    /* ---- Site footer (company / trust info) ---- */
+    .site-footer { background: #3f5269; color: #dfe5ee; }
+    .footer-inner {
+      max-width: 1100px; margin: 0 auto;
+      padding: clamp(36px, 5vw, 56px) clamp(16px, 4vw, 24px) clamp(22px, 3vw, 34px);
+      display: grid; grid-template-columns: 1.5fr 1fr; gap: clamp(28px, 5vw, 64px);
+    }
+    .footer-brand { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 14px; letter-spacing: 0.2px; }
+    .footer-brand .fb-guru { color: #c4ccd8; font-weight: 600; }
+    .footer-about p { font-size: 14.5px; line-height: 1.7; color: #c4ccd8; margin: 0; max-width: 48ch; }
+    .footer-contact h4 { font-size: 18px; color: #fff; margin: 0 0 16px; font-weight: 700; }
+    .footer-contact ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+    .footer-contact li { display: flex; align-items: flex-start; gap: 11px; font-size: 14.5px; color: #dfe5ee; }
+    .footer-contact a { color: #dfe5ee; text-decoration: none; }
+    .footer-contact a:hover { color: #fff; text-decoration: underline; }
+    .footer-contact svg { width: 17px; height: 17px; flex: 0 0 auto; margin-top: 1px; stroke: #aab6c6; fill: none; }
+    .footer-bottom { border-top: 1px solid rgba(255,255,255,0.14); }
+    .footer-bottom-inner { max-width: 1100px; margin: 0 auto; padding: 18px clamp(16px, 4vw, 24px); font-size: 13px; color: #aab6c6; }
+    @media (max-width: 680px) { .footer-inner { grid-template-columns: 1fr; } }
 
     /* ---- Lightbox ---- */
     .lb { position: fixed; inset: 0; background: rgba(8,12,20,0.92); z-index: 1000; display: none; align-items: center; justify-content: center; }
@@ -226,8 +244,37 @@
     <div id="buildings"></div>
   </main>
 
-  <footer>
-    Gas, electricity &amp; water included · Minimum stay 2 weeks · £100 one-off cleaning charge per stay
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-col footer-about">
+        <div class="footer-brand">theRent.<span class="fb-guru">guru</span></div>
+        <p>Since 1997, we've been letting flats, houses and rooms across Oxford, Cardiff, London and Swansea. Whether you're a student, a professional, or somewhere in between — come and have a look. Specialists in Oxford student accommodation and professional rentals UK-wide.</p>
+      </div>
+      <div class="footer-col footer-contact">
+        <h4>Contact Us</h4>
+        <ul>
+          <li>
+            <svg viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+            <a href="mailto:mail@therent.guru">mail@therent.guru</a>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <a href="tel:+443334440016">0333 444 0016</a>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8A8.38 8.38 0 0 1 12.5 3a8.38 8.38 0 0 1 8.5 8.5z"/></svg>
+            <a href="https://wa.me/443334440016" target="_blank" rel="noopener">WhatsApp Us!</a>
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>PO Box 1145, Cardiff, UK. CF11 1WZ</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="footer-bottom-inner">© 2026 Bannits Ltd trading as The Rent Guru. All rights reserved.</div>
+    </div>
   </footer>
 
   <!-- Lightbox -->
