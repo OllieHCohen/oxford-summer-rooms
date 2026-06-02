@@ -40,14 +40,19 @@
 
     img { display: block; }
 
-    /* ---- Hero ---- */
-    .hero { text-align: center; padding: clamp(40px, 7vw, 64px) 20px 36px; }
+    /* ---- Page header (logo, top-left) ---- */
+    .page-head { max-width: 1100px; margin: 0 auto; padding: clamp(20px, 4vw, 36px) clamp(14px, 4vw, 20px) 0; }
+    .logo { width: clamp(130px, 27vw, 210px); height: auto; display: block; }
 
-    .hero .logo {
-      width: clamp(260px, 55vw, 420px);
-      height: auto;
-      margin: 0 auto;
-      display: block;
+    /* ---- Hero text ---- */
+    .hero-text { max-width: 1100px; margin: 0 auto; padding: clamp(18px, 3.5vw, 30px) clamp(14px, 4vw, 20px) clamp(8px, 2vw, 16px); }
+    .hero-text h1 { font-size: clamp(26px, 5vw, 40px); font-weight: 700; color: var(--navy); margin: 0; line-height: 1.15; }
+    .hero-sub { font-size: clamp(15px, 2.4vw, 18px); line-height: 1.6; color: #3a4252; margin: 14px 0 0; max-width: 680px; }
+    .trust { display: flex; flex-wrap: wrap; gap: 10px 12px; margin: 22px 0 0; }
+    .trust-item {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #fff; border: 1px solid var(--line); border-radius: 999px;
+      padding: 9px 15px; font-size: 14px; font-weight: 600; color: var(--navy);
     }
 
     /* ---- Listings ---- */
@@ -206,9 +211,19 @@
 </head>
 
 <body>
-  <header class="hero">
+  <header class="page-head">
     <img class="logo" src="oxford-summer-rooms-logo.svg" alt="Oxford Summer Rooms" />
   </header>
+
+  <section class="hero-text">
+    <h1>Affordable Summer Rooms in Oxford</h1>
+    <p class="hero-sub">Comfortable rooms in East Oxford from 2 to 8 weeks. Quick booking, great value and an ideal base for studying, working or exploring the city this summer.</p>
+    <div class="trust">
+      <span class="trust-item">🏠 East Oxford Locations</span>
+      <span class="trust-item">📅 Flexible 2–8 Week Stays</span>
+      <span class="trust-item">💷 Great Value Rates</span>
+    </div>
+  </section>
 
   <main class="listings">
     <div class="listings-head">
