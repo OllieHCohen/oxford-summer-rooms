@@ -117,7 +117,10 @@
               <div class="pd-label">Due today to reserve<small>£100 refundable holding deposit — returned when you move in</small></div>
               <div class="pd-amt">£100</div>
             </div>
-            <div class="notice notice-info" style="margin-top:14px">🔒 Secure card payment by <strong>Stripe</strong>. Card payment isn’t switched on yet — clicking below validates and prepares your booking, ready for the Stripe step to go live.</div>
+            ${PAYMENTS_ENABLED
+              ? `<div class="notice notice-info" style="margin-top:14px">🔒 Secure card payment by <strong>Stripe</strong>. You’ll be redirected to Stripe to pay the £100 refundable holding deposit and confirm your reservation.</div>`
+              : `<div class="notice notice-info" style="margin-top:14px">🔒 Secure card payment by <strong>Stripe</strong>. Card payment isn’t switched on yet — clicking below validates and prepares your booking, ready for the Stripe step to go live.</div>`}
+            <div id="formError" class="notice notice-amber" style="display:none;margin-top:14px"></div>
             <button type="submit" class="btn btn-green btn-lg btn-block" style="margin-top:16px">Pay £100 &amp; reserve room</button>
             <div class="hint">By reserving you agree to a £100 refundable holding deposit. Bills (gas, electricity &amp; water) are included. Minimum stay 2 weeks; a £100 one-off cleaning charge applies to the stay.</div>
           </div>
@@ -172,8 +175,10 @@
       checkout.addEventListener('change', renderSummary);
       applyWindowBounds();
 
-      document.getElementById('bookForm').addEventListener('submit', (e) => {
+      document.getElementById('bookForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const errEl = document.getElementById('formError');
+        if (errEl) errEl.style.display = 'none';
         if (!validate(ctx)) return;
         const nights = nightsBetween(checkin.value, checkout.value);
         const payload = {
@@ -188,9 +193,27 @@
             address: { line1: val('addr1'), line2: val('addr2'), city: val('city'), postcode: val('postcode'), country: val('country') }
           }
         };
-        // TODO (backend): POST to an edge function that creates a £100 Stripe hold AND inserts this booking.
-        console.log('Booking payload (stub — Stripe/save not live yet):', payload);
-        showConfirmation(payload);
+
+        // Until the edge function + Stripe are live, validate and confirm (no charge).
+        if (!PAYMENTS_ENABLED) { console.log('Booking payload (stub — Stripe/save not live yet):', payload); showConfirmation(payload); return; }
+
+        // Live: create the £100 Stripe Checkout session via the edge function, then redirect to pay.
+        const btn = document.querySelector('#bookForm button[type="submit"]');
+        const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Processing…';
+        try {
+          const res = await fetch(BOOKING_FN, {
+            method: 'POST',
+            headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json().catch(() => ({}));
+          if (res.ok && data.url) { window.location.href = data.url; return; }
+          showFormError(data.error || 'Sorry, we couldn’t start the payment. Please try again.');
+        } catch (err) {
+          showFormError('Network error — please try again.'); console.error(err);
+        } finally {
+          btn.disabled = false; btn.textContent = orig;
+        }
       });
     }
 
@@ -210,6 +233,11 @@
       for (const [inp, wrap] of checks) { if (setErr(wrap, !val(inp))) ok = false; }
       if (setErr('f-email', !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val('email')))) ok = false;
       return ok;
+    }
+
+    function showFormError(msg) {
+      const el = document.getElementById('formError');
+      if (el) { el.textContent = msg; el.style.display = 'block'; el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     }
 
     function showConfirmation(p) {

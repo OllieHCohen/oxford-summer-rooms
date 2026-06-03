@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Reservation confirmed — Oxford Summer Rooms</title>
+  <link href="https://fonts.googleapis.com/css?family=Quicksand:400,500,600,700" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <main class="book">
+    <div class="confirm" style="margin-top:48px">
+      <h3>✓ Reservation confirmed</h3>
+      <p>Thank you — your <strong>£100 refundable holding deposit</strong> has been received and your room is now reserved. You’ll get a confirmation email shortly, and the deposit is returned when you move in.</p>
+      <p class="hint" id="ref"></p>
+      <p style="margin-top:16px"><a class="btn btn-ghost" href="index.html">← Back to all properties</a></p>
+    </div>
+  </main>
+
+  <script src="common.js"></script>
+  <script>
+    const sid = param('session_id');
+    if (sid) document.getElementById('ref').textContent = 'Reference: ' + sid;
+  </script>
+</body>
+
+</html>
