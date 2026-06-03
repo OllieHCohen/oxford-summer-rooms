@@ -78,10 +78,8 @@
 
         document.getElementById('content').innerHTML = `
           <section class="building">
-            ${carousel(photos, cls.floorplans, cls.videos, gapLabel(building))}
             <div class="building-body">
               <h3>${esc(building.property_address || (bDetail && bDetail.property_name) || 'Property')}</h3>
-              ${shortDesc ? `<p class="short-desc">${esc(shortDesc)}</p>` : ''}
               <div class="building-meta">${metaBits.map(m => `<span>${esc(m)}</span>`).join('')}</div>
               <div class="pills">${pillsHtml(meta)}</div>
               <div class="rooms">${roomsHtml}</div>
