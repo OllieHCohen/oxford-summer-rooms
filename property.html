@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Rooms — Oxford Summer Rooms</title>
+  <link href="https://fonts.googleapis.com/css?family=Quicksand:400,500,600,700" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="manifest" href="site.webmanifest" />
+  <link rel="mask-icon" href="safari-pinned-tab.svg" color="#1f3a66" />
+  <meta name="msapplication-TileColor" content="#1f3a66" />
+  <meta name="theme-color" content="#ffffff" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="page-top"><a class="backlink" href="index.html">← All properties</a></div>
+
+  <main class="listings">
+    <div id="status" class="status">Loading rooms…</div>
+    <div id="content"></div>
+  </main>
+
+  <script src="common.js"></script>
+  <script>
+    async function load() {
+      const id = parseInt(param('id'), 10);
+      const statusEl = document.getElementById('status');
+      if (!id) { statusEl.textContent = 'Property not found.'; return; }
+      try {
+        const { liveIds, heroById } = await fetchLive();
+        const [bRows, members] = await Promise.all([
+          sb(`summer_void_properties?property_id=eq.${id}&select=property_id,property_address,city,rooms,role,preceding_agreement_end,start_date`),
+          sb(`summer_void_members?void_property_id=eq.${id}&select=void_property_id,property_id,room_location`)
+        ]);
+        const building = bRows[0];
+        const liveRooms = members.filter(m => liveIds.has(m.property_id));
+        if (!building || (!liveRooms.length && !(building.role === 'standalone' && liveIds.has(id)))) {
+          statusEl.innerHTML = 'This property isn’t available right now. <a href="index.html">See all properties →</a>'; return;
+        }
+
+        const roomIds = liveRooms.map(r => r.property_id);
+        const detailIds = [...new Set([id, ...roomIds])];
+        const [detail, availability, metaRows] = await Promise.all([
+          sb(`bannits_property_cache?property_id=in.${inList(detailIds)}&select=property_id,property_name,rent_per_month,number_of_beds,number_of_bathrooms,images`),
+          roomIds.length ? sb(`room_availability?property_id=in.${inList(roomIds)}&select=property_id,window_start,window_end`) : Promise.resolve([]),
+          sb(`bannits_property_cache?property_id=eq.${id}&select=property_id,short_description,usp1:payload->>usp1,usp2:payload->>usp2,usp3:payload->>usp3,sd:payload->>shortDescription,lat:payload->>latitude,lng:payload->>longitude`)
+        ]);
+
+        const detailById = new Map(detail.map(d => [d.property_id, d]));
+        const meta = metaRows[0] || {};
+        const windowsByRoom = new Map();
+        for (const w of availability) {
+          (windowsByRoom.get(w.property_id) || windowsByRoom.set(w.property_id, []).get(w.property_id)).push(w);
+        }
+
+        document.title = `${building.property_address || 'Property'} — Oxford Summer Rooms`;
+
+        const bDetail = detailById.get(id);
+        const cls = classifyImages(bDetail && bDetail.images);
+        const photos = applyHero(cls.photos, heroById.get(id));
+        const shortDesc = meta.short_description || meta.sd || '';
+        const weeksArr = liveRooms.map(r => detailById.get(r.property_id)).filter(Boolean).map(d => weeklyRent(d.rent_per_month));
+        const fromWeek = weeksArr.length ? Math.min(...weeksArr) : null;
+        const metaBits = [
+          building.city || 'Oxford',
+          `${liveRooms.length} room${liveRooms.length === 1 ? '' : 's'} available`,
+          fromWeek ? `from ${fmtGBP(fromWeek)}/week` : ''
+        ].filter(Boolean);
+
+        const roomsHtml = liveRooms
+          .sort((a, b) => a.property_id - b.property_id)
+          .map(r => roomCard(r, detailById.get(r.property_id), windowsByRoom.get(r.property_id) || [], heroById.get(r.property_id),
+            `book.html?property=${id}&room=${r.property_id}`))
+          .join('');
+
+        document.getElementById('content').innerHTML = `
+          <section class="building">
+            ${carousel(photos, cls.floorplans, cls.videos, gapLabel(building))}
+            <div class="building-body">
+              <h3>${esc(building.property_address || (bDetail && bDetail.property_name) || 'Property')}</h3>
+              ${shortDesc ? `<p class="short-desc">${esc(shortDesc)}</p>` : ''}
+              <div class="building-meta">${metaBits.map(m => `<span>${esc(m)}</span>`).join('')}</div>
+              <div class="pills">${pillsHtml(meta)}</div>
+              <div class="rooms">${roomsHtml}</div>
+              ${locationSection(meta.lat, meta.lng, building.property_address || '')}
+            </div>
+          </section>`;
+        statusEl.style.display = 'none';
+        wireCarousels();
+      } catch (err) {
+        statusEl.textContent = 'Sorry — we couldn’t load this property right now.';
+        console.error(err);
+      }
+    }
+    load();
+  </script>
+</body>
+
+</html>

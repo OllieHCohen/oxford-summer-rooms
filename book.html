@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Book a room — Oxford Summer Rooms</title>
+  <link href="https://fonts.googleapis.com/css?family=Quicksand:400,500,600,700" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="manifest" href="site.webmanifest" />
+  <link rel="mask-icon" href="safari-pinned-tab.svg" color="#1f3a66" />
+  <meta name="msapplication-TileColor" content="#1f3a66" />
+  <meta name="theme-color" content="#ffffff" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="page-top"><a class="backlink" id="backlink" href="index.html">← Back to rooms</a></div>
+
+  <main class="book">
+    <div id="status" class="status">Loading booking…</div>
+    <div id="content"></div>
+  </main>
+
+  <script src="common.js"></script>
+  <script>
+    const val = (id) => (document.getElementById(id)?.value || '').trim();
+    const setErr = (wrapId, on) => { const el = document.getElementById(wrapId); if (el) el.classList.toggle('invalid', !!on); return !!on; };
+
+    async function load() {
+      const propertyId = parseInt(param('property'), 10);
+      const roomId = parseInt(param('room'), 10);
+      const statusEl = document.getElementById('status');
+      if (propertyId) document.getElementById('backlink').href = `property.html?id=${propertyId}`;
+      if (!propertyId || !roomId) { statusEl.textContent = 'This booking link is invalid.'; return; }
+      try {
+        const { liveIds, heroById } = await fetchLive();
+        const [memberRows, bRows] = await Promise.all([
+          sb(`summer_void_members?void_property_id=eq.${propertyId}&property_id=eq.${roomId}&select=property_id,room_location,void_property_id`),
+          sb(`summer_void_properties?property_id=eq.${propertyId}&select=property_id,property_address,city`)
+        ]);
+        const member = memberRows[0], building = bRows[0];
+        if (!member || !building || !liveIds.has(roomId)) {
+          statusEl.innerHTML = 'This room isn’t available to book right now. <a href="index.html">See all properties →</a>'; return;
+        }
+        const [detailRows, availability] = await Promise.all([
+          sb(`bannits_property_cache?property_id=eq.${roomId}&select=property_id,property_name,rent_per_month,number_of_beds,number_of_bathrooms,images`),
+          sb(`room_availability?property_id=eq.${roomId}&select=property_id,window_start,window_end`)
+        ]);
+        const detail = detailRows[0] || {};
+        const windows = bookableWindows(availability);
+        renderBooking({ propertyId, roomId, member, building, detail, windows, hero: heroById.get(roomId) });
+        statusEl.style.display = 'none';
+      } catch (err) {
+        statusEl.textContent = 'Sorry — we couldn’t load this booking page right now.';
+        console.error(err);
+      }
+    }
+
+    function renderBooking(ctx) {
+      const { propertyId, roomId, member, building, detail, windows, hero } = ctx;
+      const name = member.room_location || detail.property_name || 'Room';
+      const cls = classifyImages(detail.images);
+      const photos = applyHero(cls.photos, hero);
+      const thumb = photos[0] ? photos[0].url : '';
+      const week = detail.rent_per_month ? weeklyRent(detail.rent_per_month) : null;
+      const addr = building.property_address || '';
+      const noAvail = !windows.length;
+      const windowOptions = windows.map((w, i) =>
+        `<option value="${i}">${fmtDate(w.window_start)} – ${fmtDate(w.window_end)} (up to ${nightsBetween(w.window_start, w.window_end)} nights)</option>`).join('');
+
+      document.getElementById('content').innerHTML = `
+        <div class="summary-card">
+          ${thumb ? `<img src="${esc(thumb)}" alt="${esc(name)}">` : ''}
+          <div>
+            <div class="sc-title">${esc(name)}</div>
+            <div class="sc-addr">${esc(addr)}</div>
+            <div class="sc-ids">Property #${propertyId} · Room #${roomId}</div>
+            ${week ? `<div class="sc-price">${fmtGBP(week)} <span style="font-weight:500;color:var(--muted);font-size:13px">/ week</span></div>` : ''}
+          </div>
+        </div>
+        ${noAvail ? `<div class="notice notice-amber">This room has no available dates of 2+ weeks right now. Please <a href="property.html?id=${propertyId}">choose another room</a>.</div>` : `
+        <form class="form-card" id="bookForm" novalidate>
+          <div class="form-section">
+            <h3>Your stay</h3>
+            ${windows.length > 1 ? `<div class="field"><label for="window">Available period <span class="req">*</span></label><select id="window">${windowOptions}</select></div>` : ''}
+            <div class="field-row">
+              <div class="field" id="f-checkin"><label for="checkin">Check-in <span class="req">*</span></label><input type="date" id="checkin"><div class="field-error">Pick a check-in date inside the available period.</div></div>
+              <div class="field" id="f-checkout"><label for="checkout">Check-out <span class="req">*</span></label><input type="date" id="checkout"><div class="field-error">Stay must be at least 14 nights and within the period.</div></div>
+            </div>
+            <div id="priceSummary"></div>
+          </div>
+          <div class="form-section">
+            <h3>Your details</h3>
+            <div class="field-row">
+              <div class="field" id="f-first"><label for="firstName">First name <span class="req">*</span></label><input id="firstName" autocomplete="given-name"><div class="field-error">Please enter your first name.</div></div>
+              <div class="field" id="f-last"><label for="lastName">Last name <span class="req">*</span></label><input id="lastName" autocomplete="family-name"><div class="field-error">Please enter your last name.</div></div>
+            </div>
+            <div class="field-row">
+              <div class="field" id="f-email"><label for="email">Email <span class="req">*</span></label><input type="email" id="email" autocomplete="email"><div class="field-error">Please enter a valid email address.</div></div>
+              <div class="field" id="f-mobile"><label for="mobile">Mobile <span class="req">*</span></label><input type="tel" id="mobile" autocomplete="tel"><div class="field-error">Please enter your mobile number.</div></div>
+            </div>
+          </div>
+          <div class="form-section">
+            <h3>Billing address</h3>
+            <div class="field" id="f-addr1"><label for="addr1">Address line 1 <span class="req">*</span></label><input id="addr1" autocomplete="address-line1"><div class="field-error">Please enter your address.</div></div>
+            <div class="field"><label for="addr2">Address line 2</label><input id="addr2" autocomplete="address-line2"></div>
+            <div class="field-row">
+              <div class="field" id="f-city"><label for="city">City / Town <span class="req">*</span></label><input id="city" autocomplete="address-level2"><div class="field-error">Please enter your city or town.</div></div>
+              <div class="field" id="f-postcode"><label for="postcode">Postcode <span class="req">*</span></label><input id="postcode" autocomplete="postal-code"><div class="field-error">Please enter your postcode.</div></div>
+            </div>
+            <div class="field" id="f-country"><label for="country">Country <span class="req">*</span></label><input id="country" autocomplete="country-name" value="United Kingdom"><div class="field-error">Please enter your country.</div></div>
+          </div>
+          <div class="pay-box">
+            <div class="price-due">
+              <div class="pd-label">Due today to reserve<small>£100 refundable holding deposit — returned when you move in</small></div>
+              <div class="pd-amt">£100</div>
+            </div>
+            <div class="notice notice-info" style="margin-top:14px">🔒 Secure card payment by <strong>Stripe</strong>. Card payment isn’t switched on yet — clicking below validates and prepares your booking, ready for the Stripe step to go live.</div>
+            <button type="submit" class="btn btn-green btn-lg btn-block" style="margin-top:16px">Pay £100 &amp; reserve room</button>
+            <div class="hint">By reserving you agree to a £100 refundable holding deposit. Bills (gas, electricity &amp; water) are included. Minimum stay 2 weeks; a £100 one-off cleaning charge applies to the stay.</div>
+          </div>
+        </form>`}`;
+
+      if (!noAvail) setupBookingForm(ctx);
+    }
+
+    function setupBookingForm(ctx) {
+      const { windows, detail, propertyId, roomId, member, building } = ctx;
+      const week = detail.rent_per_month ? weeklyRent(detail.rent_per_month) : 0;
+      const sel = document.getElementById('window');
+      const checkin = document.getElementById('checkin');
+      const checkout = document.getElementById('checkout');
+      const summaryEl = document.getElementById('priceSummary');
+      const currentWindow = () => windows[sel ? parseInt(sel.value, 10) : 0];
+
+      function applyWindowBounds() {
+        const w = currentWindow();
+        checkin.min = w.window_start; checkin.max = addDays(w.window_end, -MIN_NIGHTS);
+        checkout.min = addDays(w.window_start, MIN_NIGHTS); checkout.max = w.window_end;
+        if (checkin.value && (checkin.value < checkin.min || checkin.value > checkin.max)) checkin.value = '';
+        if (checkout.value && (checkout.value < checkout.min || checkout.value > checkout.max)) checkout.value = '';
+        onCheckinChange();
+      }
+      function onCheckinChange() {
+        if (checkin.value) {
+          checkout.min = addDays(checkin.value, MIN_NIGHTS); checkout.max = currentWindow().window_end;
+          if (checkout.value && checkout.value < checkout.min) checkout.value = '';
+        }
+        renderSummary();
+      }
+      function renderSummary() {
+        if (!checkin.value || !checkout.value) { summaryEl.innerHTML = ''; return; }
+        const nights = nightsBetween(checkin.value, checkout.value);
+        if (nights < MIN_NIGHTS) { summaryEl.innerHTML = `<div class="notice notice-amber" style="margin-top:8px">Minimum stay is 14 nights.</div>`; return; }
+        const weeks = nights / 7;
+        const stay = week * weeks;
+        const total = stay + CLEANING_FEE;
+        const weeksLabel = Number.isInteger(weeks) ? `${weeks} week${weeks === 1 ? '' : 's'}` : `${weeks.toFixed(1)} weeks`;
+        summaryEl.innerHTML = `
+          <div class="price-summary">
+            <div class="ps-row"><span>${fmtGBP(week)}/week × ${nights} nights (${weeksLabel})</span><span>${fmtGBP(stay)}</span></div>
+            <div class="ps-row"><span>One-off cleaning</span><span>${fmtGBP(CLEANING_FEE)}</span></div>
+            <div class="ps-row ps-total"><span>Estimated stay total</span><span>${fmtGBP(total)}</span></div>
+            <div class="ps-row ps-muted"><span>Bills included · paid after you move in</span><span></span></div>
+          </div>`;
+      }
+
+      if (sel) sel.addEventListener('change', applyWindowBounds);
+      checkin.addEventListener('change', onCheckinChange);
+      checkout.addEventListener('change', renderSummary);
+      applyWindowBounds();
+
+      document.getElementById('bookForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!validate(ctx)) return;
+        const nights = nightsBetween(checkin.value, checkout.value);
+        const payload = {
+          property_id: propertyId, building_id: propertyId, room_id: roomId,
+          room_location: member.room_location, property_address: building.property_address,
+          check_in: checkin.value, check_out: checkout.value, nights,
+          weekly_rent: Math.round(week), cleaning_fee: CLEANING_FEE,
+          estimated_stay_total: Math.round(week * nights / 7 + CLEANING_FEE),
+          holding_deposit: HOLDING_DEPOSIT,
+          guest: {
+            first_name: val('firstName'), last_name: val('lastName'), email: val('email'), mobile: val('mobile'),
+            address: { line1: val('addr1'), line2: val('addr2'), city: val('city'), postcode: val('postcode'), country: val('country') }
+          }
+        };
+        // TODO (backend): POST to an edge function that creates a £100 Stripe hold AND inserts this booking.
+        console.log('Booking payload (stub — Stripe/save not live yet):', payload);
+        showConfirmation(payload);
+      });
+    }
+
+    function validate(ctx) {
+      let ok = true;
+      const checkin = document.getElementById('checkin');
+      const checkout = document.getElementById('checkout');
+      const sel = document.getElementById('window');
+      const w = ctx.windows[sel ? parseInt(sel.value, 10) : 0];
+      const ciBad = !checkin.value || checkin.value < w.window_start || checkin.value > addDays(w.window_end, -MIN_NIGHTS);
+      const coBad = !checkout.value || checkout.value > w.window_end || !checkin.value || nightsBetween(checkin.value, checkout.value) < MIN_NIGHTS;
+      if (setErr('f-checkin', ciBad)) ok = false;
+      if (setErr('f-checkout', coBad)) ok = false;
+
+      const checks = [['firstName', 'f-first'], ['lastName', 'f-last'], ['mobile', 'f-mobile'],
+        ['addr1', 'f-addr1'], ['city', 'f-city'], ['postcode', 'f-postcode'], ['country', 'f-country']];
+      for (const [inp, wrap] of checks) { if (setErr(wrap, !val(inp))) ok = false; }
+      if (setErr('f-email', !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val('email')))) ok = false;
+      return ok;
+    }
+
+    function showConfirmation(p) {
+      document.getElementById('content').innerHTML = `
+        <div class="confirm">
+          <h3>✓ Booking details captured</h3>
+          <p>Thanks ${esc(p.guest.first_name)} — we’ve got your request for <strong>${esc(p.room_location || 'this room')}</strong> at ${esc(p.property_address || '')}, from <strong>${fmtDate(p.check_in)}</strong> to <strong>${fmtDate(p.check_out)}</strong> (${p.nights} nights).</p>
+          <p style="margin-top:8px">The secure <strong>£100 refundable holding deposit</strong> payment (Stripe) isn’t switched on yet — once it is, this is where you’ll pay to confirm the reservation. We’ll be in touch shortly.</p>
+          <p style="margin-top:16px"><a class="btn btn-ghost" href="index.html">← Back to all properties</a></p>
+        </div>`;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    load();
+  </script>
+</body>
+
+</html>
