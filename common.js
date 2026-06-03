@@ -291,6 +291,30 @@ function propertyCard(building, liveRooms, detailById, metaById, heroById) {
     </section>`;
 }
 
+/* Compact property card for the split (list + map) listings layout.
+   Image-forward and narrow; details live on the property page. */
+function propertyCardCompact(building, liveRooms, detailById, metaById, heroById) {
+  const id = building.property_id;
+  const bDetail = detailById.get(id);
+  const cls = classifyImages(bDetail && bDetail.images);
+  const photos = applyHero(cls.photos, heroById.get(id));
+  const weeks = liveRooms.map(r => detailById.get(r.property_id)).filter(Boolean).map(d => weeklyRent(d.rent_per_month));
+  const fromWeek = weeks.length ? Math.min(...weeks) : null;
+  const roomCount = liveRooms.length;
+  const address = building.property_address || (bDetail && bDetail.property_name) || 'Property';
+  return `
+    <section class="pcard" id="pcard-${id}" data-pid="${id}">
+      ${carousel(photos, [], [], gapLabel(building))}
+      <div class="pcard-body">
+        <a class="pcard-title" href="property.html?id=${id}">${esc(address)}</a>
+        <div class="pcard-meta">${esc(building.city || 'Oxford')} · ${roomCount} room${roomCount === 1 ? '' : 's'} available</div>
+        ${fromWeek ? `<div class="pcard-price">from <strong>${fmtGBP(fromWeek)}</strong> <span>/ week</span></div>` : ''}
+        <div class="pcard-note">Bills included · Min stay 2 weeks</div>
+        <a class="btn btn-block" href="property.html?id=${id}" style="margin-top:12px">See the rooms →</a>
+      </div>
+    </section>`;
+}
+
 /* Room card (used on the property page). bookHref enables the "Book this room" button. */
 function roomCard(room, detail, windows, heroOverride, bookHref) {
   const name = room.room_location || (detail && detail.property_name) || 'Room';

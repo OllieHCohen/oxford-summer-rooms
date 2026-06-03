@@ -271,3 +271,43 @@ a { color: var(--navy); }
   .summary-card { flex-direction: column; align-items: flex-start; }
   .summary-card img { width: 100%; height: 180px; }
 }
+
+/* ---- Split (list + map) listings layout ---- */
+.maincontent { max-width: 1280px; margin: 0 auto; padding: 12px clamp(14px, 4vw, 20px) clamp(40px, 6vw, 64px); }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 42%); gap: 28px; align-items: start; }
+.split-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px; align-content: start; }
+.split-map { position: sticky; top: 14px; height: calc(100vh - 90px); }
+#map { width: 100%; height: 100%; border-radius: 16px; border: 1px solid var(--line); background: #e9ecf3; }
+
+.pcard { background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 1px 2px rgba(20,30,60,.04); transition: box-shadow .15s; }
+.pcard.hl { box-shadow: 0 0 0 2px var(--navy), 0 10px 26px rgba(20,30,60,.14); }
+.pcard .carousel-slide { height: clamp(210px, 26vw, 280px); }
+.pcard-body { padding: 14px 16px 16px; display: flex; flex-direction: column; }
+.pcard-title { font-weight: 700; color: var(--navy); font-size: 16px; text-decoration: none; line-height: 1.25; }
+.pcard-title:hover { text-decoration: underline; }
+.pcard-meta { color: var(--muted); font-size: 13.5px; margin-top: 5px; }
+.pcard-price { color: var(--ink); font-size: 14px; margin-top: 8px; }
+.pcard-price strong { color: var(--navy); font-size: 18px; }
+.pcard-price span { color: var(--muted); font-size: 13px; }
+.pcard-note { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+/* Leaflet price pins + popup */
+.leaflet-div-icon { background: transparent; border: 0; }
+.price-pin { background: transparent; border: 0; }
+.price-pin span {
+  display: inline-block; transform: translate(-50%, -50%);
+  background: var(--navy); color: #fff; font-weight: 700; font-size: 12.5px;
+  padding: 6px 11px; border-radius: 999px; white-space: nowrap;
+  border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); cursor: pointer;
+}
+.price-pin.active span { background: var(--green); }
+.map-pop { width: 210px; }
+.map-pop img { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 8px; }
+.map-pop .mp-title { font-weight: 700; color: var(--navy); font-size: 14px; line-height: 1.25; }
+.map-pop .mp-meta { color: var(--muted); font-size: 12.5px; margin: 3px 0 8px; }
+.leaflet-popup-content { margin: 12px; }
+
+@media (max-width: 980px) {
+  .split { grid-template-columns: 1fr; }
+  .split-map { position: static; height: 320px; order: -1; }
+}

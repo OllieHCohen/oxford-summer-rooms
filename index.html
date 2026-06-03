@@ -7,6 +7,7 @@
   <meta name="robots" content="noindex, nofollow" />
   <title>Oxford Summer Rooms</title>
   <link href="https://fonts.googleapis.com/css?family=Quicksand:400,500,600,700" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="mask-icon" href="safari-pinned-tab.svg" color="#1f3a66" />
@@ -26,17 +27,72 @@
     </div>
   </section>
 
-  <main class="listings">
+  <main class="maincontent">
     <div class="listings-head">
       <h2>Available Properties</h2>
       <div class="as-of" id="asOf"></div>
     </div>
-    <div id="status" class="status">Loading available properties…</div>
-    <div id="buildings"></div>
+    <div class="split">
+      <div class="split-list" id="list">
+        <div id="status" class="status">Loading available properties…</div>
+      </div>
+      <div class="split-map" id="mapWrap"><div id="map"></div></div>
+    </div>
   </main>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="common.js"></script>
   <script>
+    function popupHtml(p) {
+      return `<div class="map-pop">
+        ${p.thumb ? `<img src="${esc(p.thumb)}" alt="${esc(p.address)}">` : ''}
+        <div class="mp-title">${esc(p.address)}</div>
+        <div class="mp-meta">${p.fromWeek ? 'from ' + fmtGBP(p.fromWeek) + '/week' : ''}</div>
+        <a class="btn btn-block" href="property.html?id=${p.id}">See the rooms →</a>
+      </div>`;
+    }
+
+    function highlightCard(id) {
+      const card = document.getElementById('pcard-' + id);
+      if (!card) return;
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('hl');
+      setTimeout(() => card.classList.remove('hl'), 1600);
+    }
+
+    function initMap(points) {
+      const wrap = document.getElementById('mapWrap');
+      if (!points.length || typeof L === 'undefined') {
+        wrap.style.display = 'none';
+        document.querySelector('.split').style.gridTemplateColumns = '1fr';
+        return;
+      }
+      const map = L.map('map', { scrollWheelZoom: false }).setView([points[0].lat, points[0].lng], 14);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 19
+      }).addTo(map);
+
+      const markers = {};
+      const bounds = [];
+      for (const p of points) {
+        const icon = L.divIcon({ className: 'price-pin', html: `<span>${p.fromWeek ? 'from ' + fmtGBP(p.fromWeek) : 'View'}</span>`, iconSize: [1, 1], iconAnchor: [0, 0] });
+        const m = L.marker([p.lat, p.lng], { icon }).addTo(map).bindPopup(popupHtml(p), { minWidth: 210 });
+        m.on('click', () => highlightCard(p.id));
+        markers[p.id] = m;
+        bounds.push([p.lat, p.lng]);
+      }
+      if (bounds.length > 1) map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+      else map.setView(bounds[0], 15);
+      setTimeout(() => map.invalidateSize(), 0);
+
+      document.querySelectorAll('.pcard').forEach(card => {
+        const pid = card.dataset.pid;
+        const ic = () => markers[pid] && markers[pid]._icon;
+        card.addEventListener('mouseenter', () => { const e = ic(); if (e) e.classList.add('active'); });
+        card.addEventListener('mouseleave', () => { const e = ic(); if (e) e.classList.remove('active'); });
+      });
+    }
+
     async function load() {
       const statusEl = document.getElementById('status');
       try {
@@ -64,26 +120,42 @@
 
         const [detail, buildingMeta, syncLog] = await Promise.all([
           sb(`bannits_property_cache?property_id=in.${inList(detailIds)}&select=property_id,property_name,rent_per_month,number_of_beds,number_of_bathrooms,images`),
-          sb(`bannits_property_cache?property_id=in.${inList(buildingIds)}&select=property_id,short_description,usp1:payload->>usp1,usp2:payload->>usp2,usp3:payload->>usp3,sd:payload->>shortDescription`),
+          sb(`bannits_property_cache?property_id=in.${inList(buildingIds)}&select=property_id,short_description,sd:payload->>shortDescription,lat:payload->>latitude,lng:payload->>longitude`),
           sb('summer_voids_sync_log?select=finished_at&order=finished_at.desc&limit=1').catch(() => [])
         ]);
 
         const detailById = new Map(detail.map(d => [d.property_id, d]));
         const metaById = new Map(buildingMeta.map(m => [m.property_id, m]));
+        const sorted = visible.sort((a, b) => a.property_id - b.property_id);
 
-        document.getElementById('buildings').innerHTML = visible
-          .sort((a, b) => a.property_id - b.property_id)
-          .map(b => propertyCard(b, liveRoomsByBuilding.get(b.property_id) || [], detailById, metaById, heroById))
+        document.getElementById('list').innerHTML = sorted
+          .map(b => propertyCardCompact(b, liveRoomsByBuilding.get(b.property_id) || [], detailById, metaById, heroById))
           .join('');
-        statusEl.style.display = 'none';
+
+        const points = sorted.map(b => {
+          const meta = metaById.get(b.property_id) || {};
+          if (!meta.lat || !meta.lng) return null;
+          const rooms = liveRoomsByBuilding.get(b.property_id) || [];
+          const weeks = rooms.map(r => detailById.get(r.property_id)).filter(Boolean).map(d => weeklyRent(d.rent_per_month));
+          const bDetail = detailById.get(b.property_id);
+          const photos = applyHero(classifyImages(bDetail && bDetail.images).photos, heroById.get(b.property_id));
+          return {
+            id: b.property_id, address: b.property_address || 'Property',
+            lat: parseFloat(meta.lat), lng: parseFloat(meta.lng),
+            fromWeek: weeks.length ? Math.min(...weeks) : null,
+            thumb: photos[0] ? photos[0].url : ''
+          };
+        }).filter(Boolean);
+
         wireCarousels();
+        initMap(points);
 
         if (syncLog && syncLog[0]) {
           document.getElementById('asOf').textContent =
             'Availability as of ' + new Date(syncLog[0].finished_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         }
       } catch (err) {
-        statusEl.textContent = 'Sorry — we couldn’t load properties right now. Please try again shortly.';
+        document.getElementById('status').textContent = 'Sorry — we couldn’t load properties right now. Please try again shortly.';
         console.error(err);
       }
     }
