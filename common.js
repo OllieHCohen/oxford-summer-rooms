@@ -191,13 +191,14 @@ const lb = document.getElementById('lb');
 const lbStage = document.getElementById('lbStage');
 const lbCount = document.getElementById('lbCount');
 const lbCaption = document.getElementById('lbCaption');
-let lbItems = [], lbIndex = 0;
+let lbItems = [], lbIndex = 0, _lbZoom = false;
 
 function renderLb() {
   const it = lbItems[lbIndex];
   if (!it) return;
   const multi = lbItems.length > 1;
   lbStage.innerHTML = `<img src="${esc(it.url)}" alt="${esc(it.title || '')}">`;
+  _lbZoom = false;
   lbCount.textContent = multi ? `${lbIndex + 1} / ${lbItems.length}` : '';
   lbCaption.textContent = it.title && !/^image of property$/i.test(it.title) ? it.title : '';
   document.querySelector('.lb-prev').style.display = multi ? '' : 'none';
@@ -242,7 +243,28 @@ document.addEventListener('keydown', (e) => {
 });
 let _tx = 0;
 lb.addEventListener('touchstart', (e) => { _tx = e.changedTouches[0].clientX; }, { passive: true });
-lb.addEventListener('touchend', (e) => { const dx = e.changedTouches[0].clientX - _tx; if (Math.abs(dx) > 45) lbStep(dx < 0 ? 1 : -1); }, { passive: true });
+lb.addEventListener('touchend', (e) => { if (_lbZoom) return; const dx = e.changedTouches[0].clientX - _tx; if (Math.abs(dx) > 45) lbStep(dx < 0 ? 1 : -1); }, { passive: true });
+
+// Click/tap an image to zoom; move pointer to pan while zoomed.
+function _lbSetOrigin(img, clientX, clientY) {
+  const r = img.getBoundingClientRect();
+  const x = Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100));
+  const y = Math.min(100, Math.max(0, ((clientY - r.top) / r.height) * 100));
+  img.style.transformOrigin = `${x}% ${y}%`;
+}
+lbStage.addEventListener('click', (e) => {
+  const img = e.target.closest('img'); if (!img) return;
+  _lbZoom = !_lbZoom;
+  if (_lbZoom) _lbSetOrigin(img, e.clientX, e.clientY);
+  img.classList.toggle('zoomed', _lbZoom);
+});
+lbStage.addEventListener('mousemove', (e) => {
+  if (!_lbZoom) return; const img = lbStage.querySelector('img'); if (img) _lbSetOrigin(img, e.clientX, e.clientY);
+});
+lbStage.addEventListener('touchmove', (e) => {
+  if (!_lbZoom) return; const t = e.touches[0]; const img = lbStage.querySelector('img');
+  if (img && t) { _lbSetOrigin(img, t.clientX, t.clientY); e.preventDefault(); }
+}, { passive: false });
 
 /* If the static map fails (e.g. key not configured), show a clean fallback link. */
 function mapError(img) { const loc = img.closest('.location'); if (loc) loc.classList.add('map-failed'); }
@@ -395,8 +417,10 @@ function roomCard(room, detail, windows, heroOverride, bookHref) {
     ? bookable.map(w => `<div class="date-window">${fmtDate(w.window_start)} – ${fmtDate(w.window_end)} <span class="nights">· up to ${nightsBetween(w.window_start, w.window_end)} nights</span></div>`).join('')
     : `<div class="date-window" style="color:var(--muted)">No dates of 2+ weeks currently available</div>`;
 
+  // Single main photo, but it opens large + zoomable in the lightbox.
+  const photoGid = photos.length ? registerGallery([photos[0]]) : null;
   const photoHtml = photos.length
-    ? `<div class="room-photo-wrap"><img class="room-photo" src="${esc(photos[0].url)}" alt="${esc(name)}" loading="lazy"></div>`
+    ? `<div class="room-photo-wrap"><img class="room-photo" src="${esc(photos[0].url)}" alt="${esc(name)}" loading="lazy" data-gallery="${photoGid}" data-index="0"></div>`
     : `<div class="room-photo"></div>`;
 
   const extras = [];
