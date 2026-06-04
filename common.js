@@ -144,9 +144,31 @@ const HIW_MODAL_HTML = `
     </div>
   </div>`;
 
+const WDIG_MODAL_HTML = `
+  <div class="hiw wdig" id="wdig" aria-hidden="true">
+    <div class="hiw-card">
+      <div class="hiw-head wdig-head">
+        <button class="hiw-close" data-wdig-close aria-label="Close">×</button>
+        <h2>🎁 What do I get?</h2>
+        <p>Move in with everything you need — just bring the personal bits.</p>
+      </div>
+      <div class="wdig-body">
+        <div class="wdig-col wdig-yes">
+          <h3>Included in your room</h3>
+          <ul><li>Double bed</li><li>Desk</li><li>Chair</li><li>Wardrobe</li><li>Fridge</li><li>Washing machine</li><li>Oven</li><li>Microwave</li></ul>
+        </div>
+        <div class="wdig-col wdig-no">
+          <h3>Bring your own</h3>
+          <ul><li>Linen</li><li>Crockery</li><li>Cutlery</li><li>Bedding</li></ul>
+        </div>
+      </div>
+      <div class="hiw-foot"><button class="btn" data-wdig-close>Got it</button></div>
+    </div>
+  </div>`;
+
 // Rent Guru logo on every page except the rooms (property) page.
 const _showLogo = !location.pathname.endsWith('property.html');
-document.body.insertAdjacentHTML('beforeend', (_showLogo ? RG_LOGO_HTML : '') + FOOTER_HTML + LIGHTBOX_HTML + HIW_MODAL_HTML);
+document.body.insertAdjacentHTML('beforeend', (_showLogo ? RG_LOGO_HTML : '') + FOOTER_HTML + LIGHTBOX_HTML + HIW_MODAL_HTML + WDIG_MODAL_HTML);
 
 // How-it-works modal — works on any page; trigger with a [data-hiw-open] element.
 const _hiw = document.getElementById('hiw');
@@ -155,6 +177,14 @@ document.addEventListener('click', (e) => {
   if (e.target.closest('[data-hiw-close]') || e.target === _hiw) { _hiw.classList.remove('open'); _hiw.setAttribute('aria-hidden', 'true'); }
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && _hiw.classList.contains('open')) { _hiw.classList.remove('open'); _hiw.setAttribute('aria-hidden', 'true'); } });
+
+// What-do-I-get modal — trigger with [data-wdig-open].
+const _wdig = document.getElementById('wdig');
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-wdig-open]')) { _wdig.classList.add('open'); _wdig.setAttribute('aria-hidden', 'false'); return; }
+  if (e.target.closest('[data-wdig-close]') || e.target === _wdig) { _wdig.classList.remove('open'); _wdig.setAttribute('aria-hidden', 'true'); }
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && _wdig.classList.contains('open')) { _wdig.classList.remove('open'); _wdig.setAttribute('aria-hidden', 'true'); } });
 
 /* ---------- lightbox ---------- */
 const lb = document.getElementById('lb');
