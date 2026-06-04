@@ -69,7 +69,7 @@ Stripe payment: ${b.stripe_payment_intent ?? session.payment_intent ?? "—"}`;
   // --- Email (Resend) ---
   const resendKey = Deno.env.get("RESEND_API_KEY");
   if (resendKey) {
-    const from = Deno.env.get("BOOKINGS_FROM_EMAIL") ?? "Oxford Summer Rooms <bookings@therent.guru>";
+    const from = Deno.env.get("BOOKINGS_FROM_EMAIL") ?? "Oxford Summer Rooms <bookings@email.therent.guru>";
     const row = (l: string, v: string) =>
       `<tr><td style="padding:6px 12px 6px 0;color:#6b7280;white-space:nowrap;vertical-align:top">${l}</td><td style="padding:6px 0;color:#1d2330;font-weight:600">${v || "—"}</td></tr>`;
     const html =
