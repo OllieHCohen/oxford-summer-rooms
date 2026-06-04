@@ -6,7 +6,7 @@
 const SUPABASE_URL = 'https://rmoqgbrttdbgxntbxaxr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtb3FnYnJ0dGRiZ3hudGJ4YXhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc0NzM1NjEsImV4cCI6MjA1MzA0OTU2MX0.Ps1dT9HtOBVzNbiUikzSCWsBhHfg1_2tTevUB7gaL2c';
 const MIN_NIGHTS = 14;
-const CLEANING_FEE = 100;
+const CLEANING_FEE = 0; // £100 cleaning charge removed for now
 const HOLDING_DEPOSIT = 100;
 const MAP_PROXY = `${SUPABASE_URL}/functions/v1/static-map`;
 
@@ -123,7 +123,9 @@ const LIGHTBOX_HTML = `
     <div class="lb-count" id="lbCount"></div>
   </div>`;
 
-document.body.insertAdjacentHTML('beforeend', FOOTER_HTML + LIGHTBOX_HTML);
+const RG_LOGO_HTML = `<a class="rg-logo" href="https://www.therent.guru" target="_blank" rel="noopener" title="The Rent Guru"><img src="rent-guru-logo.png" alt="The Rent Guru" /></a>`;
+
+document.body.insertAdjacentHTML('beforeend', RG_LOGO_HTML + FOOTER_HTML + LIGHTBOX_HTML);
 
 /* ---------- lightbox ---------- */
 const lb = document.getElementById('lb');
@@ -355,7 +357,7 @@ function roomCard(room, detail, windows, heroOverride, bookHref) {
         ${week ? `<div class="price-row"><span class="price">${fmtGBP(week)}</span><span class="price-unit">/ week</span></div>` : ''}
         <div><div class="dates-label">Available</div>${datesHtml}</div>
         ${extras.length ? `<div class="room-extras">${extras.join('')}</div>` : ''}
-        <div class="terms">${week ? `${fmtGBP(week)}/week + £100 one-off cleaning. ` : ''}Bills included · Min stay 2 weeks</div>
+        <div class="terms">${week ? `${fmtGBP(week)}/week. ` : ''}Bills included · Min stay 2 weeks</div>
         ${cta}
       </div>
     </article>`;

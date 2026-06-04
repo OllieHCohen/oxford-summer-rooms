@@ -118,7 +118,7 @@
           </div>
           <div class="pay-box">
             <div class="price-due">
-              <div class="pd-label">Due today to reserve<small>£100 refundable holding deposit — returned when you move in</small></div>
+              <div class="pd-label">Due today to reserve<small>£100 — goes towards your rent, fully refundable if the room isn’t right</small></div>
               <div class="pd-amt">£100</div>
             </div>
             ${PAYMENTS_ENABLED
@@ -126,7 +126,7 @@
               : `<div class="notice notice-info" style="margin-top:14px">🔒 Secure card payment by <strong>Stripe</strong>. Card payment isn’t switched on yet — clicking below validates and prepares your booking, ready for the Stripe step to go live.</div>`}
             <div id="formError" class="notice notice-amber" style="display:none;margin-top:14px"></div>
             <button type="submit" class="btn btn-green btn-lg btn-block" style="margin-top:16px">Pay £100 &amp; reserve room</button>
-            <div class="hint">By reserving you agree to a £100 refundable holding deposit. Bills (gas, electricity &amp; water) are included. Minimum stay 2 weeks; a £100 one-off cleaning charge applies to the stay.</div>
+            <div class="hint">The £100 goes towards your rent and is fully refundable if the room isn’t right for you. Bills (gas, electricity &amp; water) are included. Minimum stay 2 weeks.</div>
           </div>
         </form>`}`;
 
@@ -168,7 +168,7 @@
         summaryEl.innerHTML = `
           <div class="price-summary">
             <div class="ps-row"><span>${fmtGBP(week)}/week × ${nights} nights (${weeksLabel})</span><span>${fmtGBP(stay)}</span></div>
-            <div class="ps-row"><span>One-off cleaning</span><span>${fmtGBP(CLEANING_FEE)}</span></div>
+            ${CLEANING_FEE ? `<div class="ps-row"><span>One-off cleaning</span><span>${fmtGBP(CLEANING_FEE)}</span></div>` : ''}
             <div class="ps-row ps-total"><span>Estimated stay total</span><span>${fmtGBP(total)}</span></div>
             <div class="ps-row ps-muted"><span>Bills included · paid after you move in</span><span></span></div>
           </div>`;
