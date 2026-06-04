@@ -69,6 +69,9 @@
       const noAvail = !windows.length;
       const windowOptions = windows.map((w, i) =>
         `<option value="${i}">${fmtDate(w.window_start)} – ${fmtDate(w.window_end)} (up to ${nightsBetween(w.window_start, w.window_end)} nights)</option>`).join('');
+      const availHtml = windows.length ? `<div class="avail-note">📅 <strong>Available to book:</strong><br>${windows.map(w =>
+        `${fmtDate(w.window_start)} &ndash; ${fmtDate(w.window_end)} <span class="an-nights">(up to ${nightsBetween(w.window_start, w.window_end)} nights)</span>`).join('<br>')}
+        <div class="an-min">Minimum stay 2 weeks. Pick a check-in and check-out within ${windows.length > 1 ? 'one of these periods' : 'this period'}.</div></div>` : '';
 
       document.getElementById('content').innerHTML = `
         <div class="summary-card">
@@ -84,6 +87,7 @@
         <form class="form-card" id="bookForm" novalidate>
           <div class="form-section">
             <h3>Your stay</h3>
+            ${availHtml}
             ${windows.length > 1 ? `<div class="field"><label for="window">Available period <span class="req">*</span></label><select id="window">${windowOptions}</select></div>` : ''}
             <div class="field-row">
               <div class="field" id="f-checkin"><label for="checkin">Check-in <span class="req">*</span></label><input type="date" id="checkin"><div class="field-error">Pick a check-in date inside the available period.</div></div>
