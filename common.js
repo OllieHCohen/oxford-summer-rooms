@@ -144,7 +144,9 @@ const HIW_MODAL_HTML = `
     </div>
   </div>`;
 
-document.body.insertAdjacentHTML('beforeend', RG_LOGO_HTML + FOOTER_HTML + LIGHTBOX_HTML + HIW_MODAL_HTML);
+// Rent Guru logo on every page except the rooms (property) page.
+const _showLogo = !location.pathname.endsWith('property.html');
+document.body.insertAdjacentHTML('beforeend', (_showLogo ? RG_LOGO_HTML : '') + FOOTER_HTML + LIGHTBOX_HTML + HIW_MODAL_HTML);
 
 // How-it-works modal — works on any page; trigger with a [data-hiw-open] element.
 const _hiw = document.getElementById('hiw');
