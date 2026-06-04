@@ -61,21 +61,67 @@
 
   <script src="common.js"></script>
   <script>
-    function initMap(points) {
+    const GMAPS_KEY = 'AIzaSyAvM-20zmkc4LMxfoqITtHC7V-6BAXv1eg';
+    const CARFAX = { lat: 51.7520, lng: -1.2577 };
+
+    let _gmapsReady;
+    function loadGmaps() {
+      if (_gmapsReady) return _gmapsReady;
+      _gmapsReady = new Promise((resolve, reject) => {
+        window.__gmapsInit = () => resolve(window.google);
+        const s = document.createElement('script');
+        s.src = `https://maps.googleapis.com/maps/api/js?key=${GMAPS_KEY}&callback=__gmapsInit&loading=async`;
+        s.async = true; s.onerror = reject;
+        document.head.appendChild(s);
+      });
+      return _gmapsReady;
+    }
+
+    function gpopHtml(p) {
+      return `<div class="gpop">
+        ${p.thumb ? `<img src="${esc(p.thumb)}" alt="${esc(p.address)}">` : ''}
+        <div class="gpop-title">${esc(p.address)}</div>
+        <div class="gpop-meta">${p.fromWeek ? 'from ' + fmtGBP(p.fromWeek) + '/week' : ''}</div>
+        <a class="btn btn-block" href="property.html?id=${p.id}">See the rooms →</a>
+      </div>`;
+    }
+
+    function pinIcon(google) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="58" viewBox="0 0 46 58"><path d="M23 2C12 2 3 11 3 22c0 14.5 20 34 20 34s20-19.5 20-34C43 11 34 2 23 2z" fill="#ff385c" stroke="#ffffff" stroke-width="3.5"/><circle cx="23" cy="22" r="7.5" fill="#ffffff"/></svg>`;
+      return { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg), scaledSize: new google.maps.Size(46, 58), anchor: new google.maps.Point(23, 56) };
+    }
+
+    function fallbackStatic(valid, wrap) {
+      const c = `${((valid.reduce((s, p) => s + p.lat, 0) / valid.length + CARFAX.lat) / 2).toFixed(5)},${((valid.reduce((s, p) => s + p.lng, 0) / valid.length + CARFAX.lng) / 2).toFixed(5)}`;
+      const markers = 'color:0xff385c%7C' + valid.map(p => `${p.lat},${p.lng}`).join('%7C');
+      const src = `${SUPABASE_URL}/functions/v1/osr-static-map?center=${c}&zoom=14&size=600x600&scale=2&markers=${markers}`;
+      const link = `https://www.google.com/maps/search/?api=1&query=${valid[0].lat},${valid[0].lng}`;
+      wrap.innerHTML = `<a class="map-static-link" href="${link}" target="_blank" rel="noopener"><img class="map-static" src="${src}" alt="Map of our Oxford properties" loading="lazy"><span class="map-overlay">📍 View on Google Maps</span></a>`;
+    }
+
+    async function initMap(points) {
       const wrap = document.getElementById('mapWrap');
       const valid = points.filter(p => p.lat && p.lng);
       if (!valid.length) { wrap.style.display = 'none'; document.querySelector('.split').style.gridTemplateColumns = '1fr'; return; }
-      // centre between the properties and Oxford city centre (Carfax), zoomed out to show both
-      const CARFAX = { lat: 51.7520, lng: -1.2577 };
-      const avgLat = valid.reduce((s, p) => s + p.lat, 0) / valid.length;
-      const avgLng = valid.reduce((s, p) => s + p.lng, 0) / valid.length;
-      const center = `${((avgLat + CARFAX.lat) / 2).toFixed(5)},${((avgLng + CARFAX.lng) / 2).toFixed(5)}`;
-      const markers = 'color:0xff385c%7Csize:mid%7C' + valid.map(p => `${p.lat},${p.lng}`).join('%7C');
-      const src = `${SUPABASE_URL}/functions/v1/osr-static-map?center=${center}&zoom=14&size=600x600&scale=2&markers=${markers}`;
-      const link = `https://www.google.com/maps/search/?api=1&query=${valid[0].lat},${valid[0].lng}`;
-      wrap.innerHTML = `<a class="map-static-link" href="${link}" target="_blank" rel="noopener">
-        <img class="map-static" src="${src}" alt="Map of our Oxford properties" loading="lazy">
-        <span class="map-overlay">📍 View on Google Maps</span></a>`;
+      wrap.innerHTML = '<div id="gmap" class="gmap"></div>';
+      let google;
+      try { google = await loadGmaps(); } catch (e) { console.error('Maps load failed', e); return fallbackStatic(valid, wrap); }
+      if (!google || !google.maps) return fallbackStatic(valid, wrap);
+
+      const map = new google.maps.Map(document.getElementById('gmap'), {
+        mapTypeControl: false, streetViewControl: false, fullscreenControl: true, zoomControl: true, gestureHandling: 'greedy'
+      });
+      const info = new google.maps.InfoWindow();
+      const bounds = new google.maps.LatLngBounds();
+      const icon = pinIcon(google);
+      valid.forEach(p => {
+        const marker = new google.maps.Marker({ position: { lat: p.lat, lng: p.lng }, map, title: p.address, icon });
+        bounds.extend(marker.getPosition());
+        marker.addListener('click', () => { info.setContent(gpopHtml(p)); info.open({ anchor: marker, map }); });
+      });
+      bounds.extend(CARFAX); // keep Oxford city centre in view
+      map.fitBounds(bounds, 48);
+      google.maps.event.addListenerOnce(map, 'idle', () => { if (map.getZoom() > 15) map.setZoom(15); });
     }
 
     // How it works modal

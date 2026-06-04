@@ -281,6 +281,11 @@ a { color: var(--navy); }
 .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 42%); gap: 28px; align-items: start; }
 .split-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px; align-content: start; }
 .split-map { position: sticky; top: 14px; }
+.gmap { width: 100%; height: clamp(380px, 72vh, 660px); border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: #e9ecf3; }
+.gpop { width: 210px; font-family: 'Quicksand', Arial, sans-serif; }
+.gpop img { width: 100%; height: 120px; object-fit: cover; border-radius: 8px; margin-bottom: 8px; }
+.gpop-title { font-weight: 700; color: var(--navy); font-size: 14px; line-height: 1.25; }
+.gpop-meta { color: var(--muted); font-size: 12.5px; margin: 3px 0 8px; }
 .map-static-link { display: block; position: relative; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); line-height: 0; }
 .map-static { width: 100%; height: auto; display: block; aspect-ratio: 1 / 1; object-fit: cover; background: #e9ecf3; }
 
@@ -315,6 +320,7 @@ a { color: var(--navy); }
 @media (max-width: 980px) {
   .split { grid-template-columns: 1fr; }
   .split-map { position: static; order: -1; }
+  .gmap { height: 340px; }
 }
 
 /* ---- Rent Guru logo (top-right, all pages) ---- */
