@@ -1,17 +1,17 @@
 // ============================================================
-// stripe-webhook — Oxford Summer Rooms
+// osr-stripe-webhook — Oxford Summer Rooms (namespaced, OSR-only)
 //
-// On checkout.session.completed: marks the booking "reserved", then sends a
-// Telegram alert and an email (to mail@therent.guru, cc ohc@ohcgroup.com) with
-// the full booking details. On checkout.session.expired: marks it "cancelled".
+// On checkout.session.completed (for OSR sessions): marks the osr_bookings row
+// "reserved", then sends a Telegram alert and an email (to mail@therent.guru,
+// cc ohc@ohcgroup.com) with full booking details. On expired: marks cancelled.
+// Only touches the OSR-only `osr_bookings` table.
 //
 // Deploy:
-//   supabase functions deploy stripe-webhook --no-verify-jwt
-// Secrets used:
-//   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET   (required)
-//   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID        (optional — Telegram alert)
-//   RESEND_API_KEY                              (optional — email)
-//   BOOKINGS_FROM_EMAIL                         (optional — defaults below)
+//   supabase functions deploy osr-stripe-webhook --no-verify-jwt
+// Point your Stripe webhook endpoint at:
+//   https://rmoqgbrttdbgxntbxaxr.supabase.co/functions/v1/osr-stripe-webhook
+// Secrets used: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET (required);
+//   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, RESEND_API_KEY, BOOKINGS_FROM_EMAIL (optional).
 // ============================================================
 
 import Stripe from "https://esm.sh/stripe@16?target=deno";
@@ -37,7 +37,6 @@ async function notify(b: any, session: Stripe.Checkout.Session) {
   const fullName = `${b.guest_first_name ?? ""} ${b.guest_last_name ?? ""}`.trim();
   const addr = [b.addr_line1, b.addr_line2, b.addr_city, b.addr_postcode, b.addr_country].filter(Boolean).join(", ");
 
-  // --- Telegram ---
   const tgToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
   const tgChat = Deno.env.get("TELEGRAM_CHAT_ID");
   if (tgToken && tgChat) {
@@ -66,7 +65,6 @@ Stripe payment: ${b.stripe_payment_intent ?? session.payment_intent ?? "—"}`;
     } catch (e) { console.error("Telegram failed:", e); }
   }
 
-  // --- Email (Resend) ---
   const resendKey = Deno.env.get("RESEND_API_KEY");
   if (resendKey) {
     const from = Deno.env.get("BOOKINGS_FROM_EMAIL") ?? "Oxford Summer Rooms <bookings@email.therent.guru>";
@@ -125,16 +123,17 @@ Deno.serve(async (req) => {
 
   if (event.type === "checkout.session.completed") {
     const s = event.data.object as Stripe.Checkout.Session;
-    const { data: booking, error } = await supabase.from("bookings").update({
+    const { data: booking, error } = await supabase.from("osr_bookings").update({
       status: "reserved",
       stripe_payment_intent: typeof s.payment_intent === "string" ? s.payment_intent : null,
       stripe_status: "paid",
     }).eq("stripe_session_id", s.id).select().maybeSingle();
     if (error) console.error("Update failed:", error);
+    // Only notify for OSR bookings (rows that exist in osr_bookings).
     if (booking) { try { await notify(booking, s); } catch (e) { console.error("notify failed:", e); } }
   } else if (event.type === "checkout.session.expired") {
     const s = event.data.object as Stripe.Checkout.Session;
-    await supabase.from("bookings").update({ status: "cancelled", stripe_status: "expired" })
+    await supabase.from("osr_bookings").update({ status: "cancelled", stripe_status: "expired" })
       .eq("stripe_session_id", s.id).eq("status", "pending_payment");
   }
 

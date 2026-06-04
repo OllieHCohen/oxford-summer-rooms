@@ -1,58 +1,39 @@
-# Booking backend — deploy guide
+# Oxford Summer Rooms — booking backend (OSR-namespaced)
 
-Three pieces turn the booking form into real, paid reservations:
-
-1. **`bookings` table** — stores each booking (private; only the edge functions can read/write it).
-2. **`create-booking`** edge function — validates, creates a £100 Stripe Checkout session, saves a pending booking, returns the Stripe URL.
-3. **`stripe-webhook`** edge function — marks the booking `reserved` once Stripe confirms payment.
+Everything here is **OSR-only** and must never collide with Rent Guru resources:
+- Table: **`osr_bookings`**
+- Functions: **`osr-create-booking`**, **`osr-stripe-webhook`**
+- The functions only **read** the shared tables (`property_live_status`,
+  `summer_void_members`, `room_availability`, `bannits_property_cache`) and only
+  **write** `osr_bookings`.
 
 Project ref: `rmoqgbrttdbgxntbxaxr`.
 
-## 1. Create the table
-In the Supabase dashboard → SQL editor, run [`bookings.sql`](./bookings.sql).
+## 1. Table
+In the SQL editor, either rename the earlier OSR table:
+```sql
+alter table public.bookings rename to osr_bookings;
+```
+…or create it fresh with [`osr_bookings.sql`](./osr_bookings.sql).
 
-## 2. Set secrets
+## 2. Deploy the functions
 ```bash
-supabase link --project-ref rmoqgbrttdbgxntbxaxr
-supabase secrets set STRIPE_SECRET_KEY=sk_live_xxx           # or sk_test_xxx to test
-supabase secrets set SITE_URL=https://www.oxfordsummerrooms.com
-# (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided automatically)
+supabase functions deploy osr-create-booking --project-ref rmoqgbrttdbgxntbxaxr --no-verify-jwt
+supabase functions deploy osr-stripe-webhook --project-ref rmoqgbrttdbgxntbxaxr --no-verify-jwt
 ```
 
-## 3. Deploy the functions
-```bash
-supabase functions deploy create-booking --no-verify-jwt
-supabase functions deploy stripe-webhook --no-verify-jwt
+## 3. Secrets (already set on the project)
+`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SITE_URL`,
+`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `RESEND_API_KEY`,
+optional `BOOKINGS_FROM_EMAIL` (defaults to `bookings@email.therent.guru`).
+
+## 4. Stripe webhook
+Point the Stripe webhook endpoint at the OSR webhook:
 ```
-`--no-verify-jwt` lets the public site call them with the anon key (create-booking does
-its own validation; stripe-webhook verifies the Stripe signature instead).
-
-## 4. Add the Stripe webhook
-Stripe dashboard → Developers → Webhooks → Add endpoint:
-- URL: `https://rmoqgbrttdbgxntbxaxr.supabase.co/functions/v1/stripe-webhook`
-- Events: `checkout.session.completed`, `checkout.session.expired`
-- Copy the signing secret and set it:
-```bash
-supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_xxx
+https://rmoqgbrttdbgxntbxaxr.supabase.co/functions/v1/osr-stripe-webhook
 ```
+Events: `checkout.session.completed`, `checkout.session.expired`.
+(The signing secret is unchanged, so `STRIPE_WEBHOOK_SECRET` stays the same.)
 
-## 5. Turn payments on in the frontend
-In [`common.js`](../common.js) flip:
-```js
-const PAYMENTS_ENABLED = true;
-```
-Commit + deploy. The booking form will now create a Stripe session and redirect to pay.
-
-## Test first
-Use Stripe **test** keys and card `4242 4242 4242 4242` (any future expiry / CVC).
-A successful test payment should create a `bookings` row that flips from
-`pending_payment` to `reserved`, and land the guest on `book-success.html`.
-
-## Notes
-- The deposit is a normal £100 charge. To refund it (e.g. on move-in), refund the
-  payment in the Stripe dashboard, or add a small `refund-deposit` function later.
-- `create-booking` re-checks live status, room membership, availability windows, the
-  14-night minimum, and date clashes **server-side**, so the £100 amount and the
-  availability rules can't be tampered with from the browser.
-- The anon key stays read-only for everything else; only these functions (service role)
-  touch the `bookings` table.
+## 5. Frontend
+`common.js` → `BOOKING_FN` points at `osr-create-booking`, and `PAYMENTS_ENABLED = true`.

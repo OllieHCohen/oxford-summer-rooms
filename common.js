@@ -13,7 +13,7 @@ const MAP_PROXY = `${SUPABASE_URL}/functions/v1/static-map`;
 /* Flip to true once the create-booking edge function + Stripe are deployed.
    While false, the booking form validates and shows a confirmation (no charge). */
 const PAYMENTS_ENABLED = true;
-const BOOKING_FN = `${SUPABASE_URL}/functions/v1/create-booking`;
+const BOOKING_FN = `${SUPABASE_URL}/functions/v1/osr-create-booking`;
 
 /* ---------- helpers ---------- */
 async function sb(path) {

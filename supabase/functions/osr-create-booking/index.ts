@@ -1,16 +1,14 @@
 // ============================================================
-// create-booking — Oxford Summer Rooms
+// osr-create-booking — Oxford Summer Rooms (namespaced, OSR-only)
 //
-// Creates a £100 refundable holding-deposit Stripe Checkout Session and
-// records a pending booking. The browser redirects the guest to the returned
-// `url` to pay; the stripe-webhook function then marks the booking "reserved".
+// Creates a £100 refundable holding-deposit Stripe Checkout Session and records
+// a pending booking in the OSR-only `osr_bookings` table. The browser redirects
+// the guest to the returned `url` to pay; osr-stripe-webhook then marks it
+// "reserved". Only READS the shared Rent Guru tables; only WRITES osr_bookings.
 //
 // Deploy:
-//   supabase functions deploy create-booking --no-verify-jwt
-// Required secrets (supabase secrets set ...):
-//   STRIPE_SECRET_KEY   = sk_live_... (or sk_test_...)
-//   SITE_URL            = https://www.oxfordsummerrooms.com   (optional, for redirects)
-//   SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided automatically.
+//   supabase functions deploy osr-create-booking --no-verify-jwt
+// Secrets used: STRIPE_SECRET_KEY, SITE_URL (SUPABASE_URL / SERVICE_ROLE auto).
 // ============================================================
 
 import Stripe from "https://esm.sh/stripe@16?target=deno";
@@ -64,7 +62,7 @@ Deno.serve(async (req) => {
   const n = nights(check_in, check_out);
   if (!(n >= MIN_NIGHTS)) return json({ error: `Minimum stay is ${MIN_NIGHTS} nights.` }, 400);
 
-  // --- server-side re-validation against live data (never trust the client) ---
+  // --- server-side re-validation against live data (read-only on shared tables) ---
   const [liveRes, memberRes, windowsRes, roomRes] = await Promise.all([
     supabase.from("property_live_status").select("property_id").eq("property_id", room_id).eq("is_live", true).maybeSingle(),
     supabase.from("summer_void_members").select("property_id, room_location").eq("void_property_id", property_id).eq("property_id", room_id).maybeSingle(),
@@ -80,8 +78,8 @@ Deno.serve(async (req) => {
     check_in >= w.window_start && check_out <= w.window_end && nights(w.window_start, w.window_end) >= MIN_NIGHTS);
   if (!insideWindow) return json({ error: "Selected dates are not available." }, 409);
 
-  // --- prevent double-booking the same room over overlapping dates ---
-  const { data: clash } = await supabase.from("bookings").select("id")
+  // --- prevent double-booking the same room over overlapping dates (osr_bookings only) ---
+  const { data: clash } = await supabase.from("osr_bookings").select("id")
     .eq("room_id", room_id).in("status", ["pending_payment", "reserved"])
     .lt("check_in", check_out).gt("check_out", check_in).limit(1);
   if (clash && clash.length) return json({ error: "Those dates have just been taken. Please choose other dates." }, 409);
@@ -107,7 +105,7 @@ Deno.serve(async (req) => {
         },
       }],
       payment_intent_data: { description: `Holding deposit — room ${room_id} (${check_in}..${check_out})` },
-      metadata: { property_id: String(property_id), room_id: String(room_id), check_in, check_out },
+      metadata: { source: "oxford-summer-rooms", property_id: String(property_id), room_id: String(room_id), check_in, check_out },
       success_url: `${SITE_URL}/book-success.html?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${SITE_URL}/book.html?property=${property_id}&room=${room_id}`,
     });
@@ -116,8 +114,8 @@ Deno.serve(async (req) => {
     return json({ error: "Could not start payment. Please try again." }, 502);
   }
 
-  // --- record the pending booking (service role bypasses RLS) ---
-  const { error: insErr } = await supabase.from("bookings").insert({
+  // --- record the pending booking in osr_bookings (service role bypasses RLS) ---
+  const { error: insErr } = await supabase.from("osr_bookings").insert({
     status: "pending_payment",
     property_id, room_id,
     room_location: memberRes.data.room_location ?? null,
