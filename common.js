@@ -125,7 +125,34 @@ const LIGHTBOX_HTML = `
 
 const RG_LOGO_HTML = `<a class="rg-logo" href="https://www.therent.guru" target="_blank" rel="noopener" title="The Rent Guru"><img src="rent-guru-logo.png" alt="The Rent Guru" /></a>`;
 
-document.body.insertAdjacentHTML('beforeend', RG_LOGO_HTML + FOOTER_HTML + LIGHTBOX_HTML);
+const HIW_MODAL_HTML = `
+  <div class="hiw" id="hiw" aria-hidden="true">
+    <div class="hiw-card">
+      <div class="hiw-head">
+        <button class="hiw-close" data-hiw-close aria-label="Close">×</button>
+        <h2>How it works</h2>
+        <p>A simple 5-step process to book your Oxford summer room.</p>
+      </div>
+      <ol class="hiw-steps">
+        <li><span class="hiw-num">1</span><div><div class="hiw-step-t">🛏️ Choose a room</div><div class="hiw-step-d">Browse the rooms and click <strong>“Book this room”</strong> on the one you like.</div></div></li>
+        <li><span class="hiw-num">2</span><div><div class="hiw-step-t">📅 Choose your dates</div><div class="hiw-step-d">Pick your check-in and check-out from the room’s available summer dates.</div></div></li>
+        <li><span class="hiw-num">3</span><div><div class="hiw-step-t">📝 Enter your details</div><div class="hiw-step-d">Add your name, contact details and billing address.</div></div></li>
+        <li><span class="hiw-num">4</span><div><div class="hiw-step-t">💳 Pay £100 to reserve your room</div><div class="hiw-step-d">This <span class="hiw-em">goes towards your rent</span> and is <span class="hiw-em">fully refundable</span> if you don’t like the room.</div></div></li>
+        <li><span class="hiw-num">5</span><div><div class="hiw-step-t">✉️ We’ll be in touch</div><div class="hiw-step-d">We’ll email you a contract and confirm a time to meet you on your arrival date.</div></div></li>
+      </ol>
+      <div class="hiw-foot"><button class="btn" data-hiw-close>Got it</button></div>
+    </div>
+  </div>`;
+
+document.body.insertAdjacentHTML('beforeend', RG_LOGO_HTML + FOOTER_HTML + LIGHTBOX_HTML + HIW_MODAL_HTML);
+
+// How-it-works modal — works on any page; trigger with a [data-hiw-open] element.
+const _hiw = document.getElementById('hiw');
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-hiw-open]')) { _hiw.classList.add('open'); _hiw.setAttribute('aria-hidden', 'false'); return; }
+  if (e.target.closest('[data-hiw-close]') || e.target === _hiw) { _hiw.classList.remove('open'); _hiw.setAttribute('aria-hidden', 'true'); }
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && _hiw.classList.contains('open')) { _hiw.classList.remove('open'); _hiw.setAttribute('aria-hidden', 'true'); } });
 
 /* ---------- lightbox ---------- */
 const lb = document.getElementById('lb');
