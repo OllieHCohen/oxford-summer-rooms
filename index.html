@@ -70,7 +70,7 @@
       const avgLat = valid.reduce((s, p) => s + p.lat, 0) / valid.length;
       const avgLng = valid.reduce((s, p) => s + p.lng, 0) / valid.length;
       const center = `${((avgLat + CARFAX.lat) / 2).toFixed(5)},${((avgLng + CARFAX.lng) / 2).toFixed(5)}`;
-      const markers = 'color:0x1f3a66%7C' + valid.map(p => `${p.lat},${p.lng}`).join('%7C');
+      const markers = 'color:0xff385c%7Csize:mid%7C' + valid.map(p => `${p.lat},${p.lng}`).join('%7C');
       const src = `${SUPABASE_URL}/functions/v1/osr-static-map?center=${center}&zoom=14&size=600x600&scale=2&markers=${markers}`;
       const link = `https://www.google.com/maps/search/?api=1&query=${valid[0].lat},${valid[0].lng}`;
       wrap.innerHTML = `<a class="map-static-link" href="${link}" target="_blank" rel="noopener">

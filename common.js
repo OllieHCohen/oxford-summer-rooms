@@ -123,9 +123,10 @@ const LIGHTBOX_HTML = `
     <div class="lb-count" id="lbCount"></div>
   </div>`;
 
-const RG_LOGO_HTML = `<a class="rg-logo" href="https://www.therent.guru" target="_blank" rel="noopener" title="The Rent Guru"><img src="rent-guru-logo.png" alt="The Rent Guru" /></a>`;
+const SITE_HEADER_HTML = `<header class="site-header"><a href="https://www.therent.guru" target="_blank" rel="noopener" title="The Rent Guru"><img class="rg-logo-img" src="rent-guru-logo.png" alt="The Rent Guru" /></a></header>`;
 
-document.body.insertAdjacentHTML('beforeend', RG_LOGO_HTML + FOOTER_HTML + LIGHTBOX_HTML);
+document.body.insertAdjacentHTML('afterbegin', SITE_HEADER_HTML);
+document.body.insertAdjacentHTML('beforeend', FOOTER_HTML + LIGHTBOX_HTML);
 
 /* ---------- lightbox ---------- */
 const lb = document.getElementById('lb');
