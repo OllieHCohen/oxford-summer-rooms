@@ -123,7 +123,7 @@ const LIGHTBOX_HTML = `
     <div class="lb-count" id="lbCount"></div>
   </div>`;
 
-const RG_LOGO_HTML = `<a class="rg-logo" href="https://www.therent.guru" target="_blank" rel="noopener" title="The Rent Guru"><img src="rent-guru-logo.png" alt="The Rent Guru" /></a>`;
+const RG_LOGO_HTML = `<a class="rg-logo" href="index.html" title="Oxford Summer Rooms — home"><img src="rent-guru-logo.png" alt="Oxford Summer Rooms" /></a>`;
 
 const HIW_MODAL_HTML = `
   <div class="hiw" id="hiw" aria-hidden="true">
