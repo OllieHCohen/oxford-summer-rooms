@@ -381,13 +381,23 @@ function propertyCardCompact(building, liveRooms, detailById, metaById, heroById
   const bDetail = detailById.get(id);
   const cls = classifyImages(bDetail && bDetail.images);
   const photos = applyHero(cls.photos, heroById.get(id));
+  // Floor plan from the building (fall back to its rooms); 360°/video tours aggregated from the rooms.
+  const floorplans = cls.floorplans.slice();
+  const videos = cls.videos.slice();
+  const seenF = new Set(floorplans.map(f => f.url));
+  const seenV = new Set(videos.map(v => v.url));
+  for (const r of liveRooms) {
+    const rc = classifyImages((detailById.get(r.property_id) || {}).images);
+    for (const v of rc.videos) if (!seenV.has(v.url)) { seenV.add(v.url); videos.push(v); }
+    if (!floorplans.length) for (const f of rc.floorplans) if (!seenF.has(f.url)) { seenF.add(f.url); floorplans.push(f); }
+  }
   const weeks = liveRooms.map(r => detailById.get(r.property_id)).filter(Boolean).map(d => weeklyRent(d.rent_per_month));
   const fromWeek = weeks.length ? Math.min(...weeks) : null;
   const roomCount = liveRooms.length;
   const address = building.property_address || (bDetail && bDetail.property_name) || 'Property';
   return `
     <section class="pcard" id="pcard-${id}" data-pid="${id}">
-      ${carousel(photos, [], [], gapLabel(building))}
+      ${carousel(photos, floorplans, videos, gapLabel(building))}
       <div class="pcard-body">
         <a class="pcard-title" href="property.html?id=${id}">${esc(address)}</a>
         <div class="pcard-meta">${esc(building.city || 'Oxford')} · ${roomCount} room${roomCount === 1 ? '' : 's'} available</div>
