@@ -7,6 +7,8 @@
   <meta name="robots" content="noindex, nofollow" />
   <title>Book a room — Oxford Summer Rooms</title>
   <link href="https://fonts.googleapis.com/css?family=Quicksand:400,500,600,700" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css" />
+  <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="manifest" href="site.webmanifest" />
   <link rel="mask-icon" href="safari-pinned-tab.svg" color="#1f3a66" />
@@ -27,6 +29,7 @@
   <script>
     const val = (id) => (document.getElementById(id)?.value || '').trim();
     const setErr = (wrapId, on) => { const el = document.getElementById(wrapId); if (el) el.classList.toggle('invalid', !!on); return !!on; };
+    let phoneIti = null;
 
     async function load() {
       const propertyId = parseInt(param('property'), 10);
@@ -103,7 +106,7 @@
             </div>
             <div class="field-row">
               <div class="field" id="f-email"><label for="email">Email <span class="req">*</span></label><input type="email" id="email" autocomplete="email"><div class="field-error">Please enter a valid email address.</div></div>
-              <div class="field" id="f-mobile"><label for="mobile">Mobile <span class="req">*</span></label><input type="tel" id="mobile" autocomplete="tel"><div class="field-error">Please enter your mobile number.</div></div>
+              <div class="field" id="f-mobile"><label for="mobile">Mobile <span class="req">*</span></label><input type="tel" id="mobile" autocomplete="tel"><div class="field-error">Please enter a valid mobile number.</div></div>
             </div>
           </div>
           <div class="form-section">
@@ -251,6 +254,15 @@
         pcmsg.textContent = 'Address filled in — please check it and edit if needed.';
       });
 
+      // --- International phone validation (intl-tel-input / libphonenumber) ---
+      const mobileEl = document.getElementById('mobile');
+      if (window.intlTelInput && mobileEl && !phoneIti) {
+        phoneIti = window.intlTelInput(mobileEl, {
+          initialCountry: 'gb', preferredCountries: ['gb', 'ie', 'us'], separateDialCode: true,
+          utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js'
+        });
+      }
+
       document.getElementById('bookForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const errEl = document.getElementById('formError');
@@ -265,7 +277,8 @@
           estimated_stay_total: Math.round(week * nights / 7 + CLEANING_FEE),
           holding_deposit: HOLDING_DEPOSIT,
           guest: {
-            first_name: val('firstName'), last_name: val('lastName'), email: val('email'), mobile: val('mobile'),
+            first_name: val('firstName'), last_name: val('lastName'), email: val('email'),
+            mobile: (phoneIti && window.intlTelInputUtils && phoneIti.getNumber()) ? phoneIti.getNumber() : val('mobile'),
             address: { line1: val('addr1'), line2: val('addr2'), city: val('city'), postcode: val('postcode'), country: val('country') }
           }
         };
@@ -304,10 +317,14 @@
       if (setErr('f-checkin', ciBad)) ok = false;
       if (setErr('f-checkout', coBad)) ok = false;
 
-      const checks = [['firstName', 'f-first'], ['lastName', 'f-last'], ['mobile', 'f-mobile'],
+      const checks = [['firstName', 'f-first'], ['lastName', 'f-last'],
         ['addr1', 'f-addr1'], ['city', 'f-city'], ['postcode', 'f-postcode'], ['country', 'f-country']];
       for (const [inp, wrap] of checks) { if (setErr(wrap, !val(inp))) ok = false; }
       if (setErr('f-email', !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val('email')))) ok = false;
+      // mobile: validate international format when libphonenumber utils are loaded, else require non-empty
+      const utilsReady = !!window.intlTelInputUtils;
+      const mobileBad = (phoneIti && utilsReady) ? !phoneIti.isValidNumber() : !val('mobile');
+      if (setErr('f-mobile', mobileBad)) ok = false;
       return ok;
     }
 
