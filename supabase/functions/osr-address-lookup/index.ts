@@ -23,10 +23,13 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (!KEY) return json({ error: "Address lookup not configured" }, 500);
 
-  const q = (new URL(req.url).searchParams.get("q") || "").trim();
+  const sp = new URL(req.url).searchParams;
+  const q = (sp.get("q") || "").trim();
   if (q.length < 2) return json({ results: [] });
+  // Postcoder country code (ISO-ish). UK uses "UK". Sanitise to letters only.
+  const country = (sp.get("country") || "UK").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3) || "UK";
 
-  const url = `https://ws.postcoder.com/pcw/${encodeURIComponent(KEY)}/address/UK/${encodeURIComponent(q)}?format=json&lines=2&identifier=oxfordsummerrooms`;
+  const url = `https://ws.postcoder.com/pcw/${encodeURIComponent(KEY)}/address/${country}/${encodeURIComponent(q)}?format=json&lines=2&identifier=oxfordsummerrooms`;
   let res: Response;
   try {
     res = await fetch(url);
@@ -46,7 +49,7 @@ Deno.serve(async (req) => {
   const results = list.map((a: any) => {
     const line1 = a.addressline1 || a.premise || "";
     const line2 = a.addressline2 || "";
-    const city = a.posttown || a.dependentlocality || "";
+    const city = a.posttown || a.dependentlocality || a.county || a.state || "";
     const postcode = a.postcode || "";
     const summary = a.summaryline || [line1, line2, city, postcode].filter(Boolean).join(", ");
     return { line1, line2, city, postcode, summary };

@@ -111,6 +111,7 @@
             <div class="field" id="f-pcsearch">
               <label for="pcsearch">Find your address</label>
               <div class="pc-row">
+                <select id="pccountry" class="pc-country" aria-label="Country to search"></select>
                 <input id="pcsearch" placeholder="Enter your postcode, e.g. OX4 1QJ" autocomplete="off">
                 <button type="button" class="btn btn-ghost" id="pcfind">Find address</button>
               </div>
@@ -188,19 +189,45 @@
       checkout.addEventListener('change', renderSummary);
       applyWindowBounds();
 
-      // --- Postcoder address lookup ---
+      // --- Postcoder address lookup (UK + international) ---
+      const COUNTRIES = [
+        ['UK', 'United Kingdom'], ['IE', 'Ireland'], ['US', 'United States'], ['CA', 'Canada'],
+        ['AU', 'Australia'], ['NZ', 'New Zealand'], ['FR', 'France'], ['DE', 'Germany'], ['ES', 'Spain'],
+        ['IT', 'Italy'], ['NL', 'Netherlands'], ['BE', 'Belgium'], ['PT', 'Portugal'], ['CH', 'Switzerland'],
+        ['AT', 'Austria'], ['SE', 'Sweden'], ['NO', 'Norway'], ['DK', 'Denmark'], ['FI', 'Finland'],
+        ['PL', 'Poland'], ['GR', 'Greece'], ['IN', 'India'], ['CN', 'China'], ['HK', 'Hong Kong'],
+        ['SG', 'Singapore'], ['JP', 'Japan'], ['KR', 'South Korea'], ['AE', 'United Arab Emirates'],
+        ['SA', 'Saudi Arabia'], ['NG', 'Nigeria'], ['GH', 'Ghana'], ['KE', 'Kenya'], ['ZA', 'South Africa'],
+        ['PK', 'Pakistan'], ['BD', 'Bangladesh'], ['BR', 'Brazil'], ['MX', 'Mexico'],
+        ['', 'Other (enter manually)'],
+      ];
+      const pccountry = document.getElementById('pccountry');
       const pcsearch = document.getElementById('pcsearch');
       const pcfind = document.getElementById('pcfind');
       const pcresults = document.getElementById('pcresults');
       const pcmsg = document.getElementById('pcmsg');
       let pcData = [];
+      pccountry.innerHTML = COUNTRIES.map(([c, n]) => `<option value="${c}">${esc(n)}</option>`).join('');
+      const countryName = () => (COUNTRIES.find(c => c[0] === pccountry.value) || [, 'United Kingdom'])[1];
+
+      function onCountryChange() {
+        const other = pccountry.value === '';
+        pcsearch.style.display = other ? 'none' : '';
+        pcfind.style.display = other ? 'none' : '';
+        pcresults.style.display = 'none'; pcresults.innerHTML = '';
+        pcsearch.placeholder = pccountry.value === 'UK' ? 'Enter your postcode, e.g. OX4 1QJ' : 'Enter postcode / ZIP or street';
+        pcmsg.textContent = other ? 'Please enter your address in the fields below.' : '';
+        if (other) document.getElementById('country').value = '';
+      }
+      pccountry.addEventListener('change', onCountryChange);
+
       async function doLookup() {
         const q = (pcsearch.value || '').trim();
         pcmsg.textContent = ''; pcresults.style.display = 'none'; pcresults.innerHTML = '';
-        if (q.length < 2) { pcmsg.textContent = 'Enter your postcode to search.'; return; }
+        if (q.length < 2) { pcmsg.textContent = 'Enter a postcode or address to search.'; return; }
         const orig = pcfind.textContent; pcfind.disabled = true; pcfind.textContent = 'Searching…';
         try {
-          const res = await fetch(`${ADDRESS_FN}?q=${encodeURIComponent(q)}`, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+          const res = await fetch(`${ADDRESS_FN}?q=${encodeURIComponent(q)}&country=${encodeURIComponent(pccountry.value || 'UK')}`, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
           const data = await res.json().catch(() => ({}));
           pcData = data.results || [];
           if (!pcData.length) { pcmsg.textContent = 'No addresses found — please enter your address below.'; return; }
@@ -210,16 +237,16 @@
         } catch (err) { pcmsg.textContent = 'Address lookup is unavailable — please enter your address below.'; console.error(err); }
         finally { pcfind.disabled = false; pcfind.textContent = orig; }
       }
-      if (pcfind) pcfind.addEventListener('click', doLookup);
-      if (pcsearch) pcsearch.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doLookup(); } });
-      if (pcresults) pcresults.addEventListener('change', () => {
+      pcfind.addEventListener('click', doLookup);
+      pcsearch.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); doLookup(); } });
+      pcresults.addEventListener('change', () => {
         const a = pcData[parseInt(pcresults.value, 10)];
         if (!a) return;
         document.getElementById('addr1').value = a.line1 || '';
         document.getElementById('addr2').value = a.line2 || '';
         document.getElementById('city').value = a.city || '';
         document.getElementById('postcode').value = a.postcode || '';
-        document.getElementById('country').value = 'United Kingdom';
+        document.getElementById('country').value = countryName();
         ['f-addr1', 'f-city', 'f-postcode'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('invalid'); });
         pcmsg.textContent = 'Address filled in — please check it and edit if needed.';
       });
