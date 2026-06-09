@@ -14,6 +14,7 @@ const MAP_PROXY = `${SUPABASE_URL}/functions/v1/static-map`;
    While false, the booking form validates and shows a confirmation (no charge). */
 const PAYMENTS_ENABLED = true;
 const BOOKING_FN = `${SUPABASE_URL}/functions/v1/osr-create-booking`;
+const ADDRESS_FN = `${SUPABASE_URL}/functions/v1/osr-address-lookup`;
 
 /* ---------- helpers ---------- */
 async function sb(path) {
