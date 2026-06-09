@@ -26,6 +26,11 @@ a { color: var(--navy); }
 .hero-text { max-width: 1100px; margin: 0 auto; padding: clamp(36px, 6vw, 64px) clamp(14px, 4vw, 20px) clamp(8px, 2vw, 16px); }
 .hero-text h1 { font-size: clamp(26px, 5vw, 40px); font-weight: 700; color: var(--navy); margin: 0; line-height: 1.15; }
 .hero-sub { font-size: clamp(15px, 2.4vw, 18px); line-height: 1.6; color: #3a4252; margin: 14px 0 0; max-width: 680px; }
+.wa-top { display: inline-flex; align-items: center; gap: 9px; margin: 20px 0 0; background: #25D366; color: #fff; font-weight: 700; font-size: 15px; padding: 11px 18px; border-radius: 999px; text-decoration: none; box-shadow: 0 2px 10px rgba(37,211,102,.35); }
+.wa-top:hover { background: #1ebe5b; }
+.wa-top svg { width: 20px; height: 20px; fill: #fff; flex: 0 0 auto; }
+.wa-top strong { font-weight: 800; }
+
 .trust { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin: 22px 0 0; }
 .trust-item {
   display: inline-flex; align-items: center; gap: 8px;
