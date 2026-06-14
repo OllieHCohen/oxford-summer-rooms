@@ -1,6 +1,6 @@
 # Oxford Summer Rooms — Project Handoff / Brain Dump
 
-_Last updated: 2026-06-04. Read this first if you're picking the project up in a new session._
+_Last updated: 2026-06-09. Read this first if you're picking the project up in a new session._
 
 ---
 
@@ -31,10 +31,11 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 | `property.html?id=<buildingId>` | **Rooms** page: property header (address, pills), room cards, location map. Each room has "Book this room →" |
 | `book.html?property=<id>&room=<id>` | **Booking** page: date picker (constrained to availability), price summary, billing form, £100 Stripe deposit |
 | `book-success.html?session_id=...` | Post-payment confirmation |
-| `common.js` | Shared: Supabase config + helpers, lightbox (with click-to-zoom), carousel, card builders, footer + Rent Guru logo injection, the two modals (How it works / What do I get), `PAYMENTS_ENABLED` flag |
+| `common.js` | Shared: Supabase config + helpers, lightbox (click-to-zoom), carousel, card builders, footer + Rent Guru logo injection, the 3 modals (How it works / What do I get / Book a Viewing), `PAYMENTS_ENABLED` flag, function URLs (`BOOKING_FN`/`ADDRESS_FN`/`VIEWING_FN`) |
 | `styles.css` | All styles |
 | `rent-guru-logo.png`, `favicon.svg`, `oxford-summer-rooms-logo.svg`, `safari-pinned-tab.svg`, `site.webmanifest` | assets |
 | `supabase/` | OSR edge functions + SQL + this backend's README |
+| `licences/` | **gitignored (guest PII)** — Word Licence-to-Occupy docs: robust template + filled per-guest copies (see §8) |
 
 ## 3. Supabase backend — ⚠️ SHARED PROJECT, READ THIS
 - **Project ref:** `rmoqgbrttdbgxntbxaxr` ("Amber.rent Database project"), region London.
@@ -71,6 +72,12 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
   `reserved` + sends Telegram + email; on `expired` marks `cancelled`.
 - **Function `osr-static-map`** — Google Static Maps proxy (multi-marker) used as the
   homepage map **fallback** (keeps the Google key server-side).
+- **Function `osr-address-lookup`** — Postcoder UK + international address-lookup proxy (key
+  server-side). Called by the booking billing-address "Find your address". `?q=<postcode>&country=<UK|FR|US|…>`.
+- **Function `osr-book-viewing`** — saves a viewing request to `osr_viewings`, computes the next
+  4pm slot (Mon–Fri, UK time; today if weekday & before 3pm, else next weekday), alerts
+  mail@therent.guru by Telegram + email.
+- **Table `osr_viewings`** — viewing requests (RLS on, no public policies). SQL in `supabase/osr_viewings.sql`.
 - Deploy any of them with:
   `supabase functions deploy <name> --project-ref rmoqgbrttdbgxntbxaxr --no-verify-jwt`
 
@@ -79,6 +86,8 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 - `STRIPE_WEBHOOK_SECRET` = `whsec_…` (from the Stripe webhook endpoint)
 - `SITE_URL` = `https://www.oxfordsummerrooms.com`
 - `GOOGLE_MAPS_API_KEY` = server key used by `static-map` and `osr-static-map`
+- `POSTCODER_API_KEY` = Postcoder address-lookup key (used by `osr-address-lookup`).
+  Postcoder phone/autocomplete products are NOT enabled on this key.
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `RESEND_API_KEY` (pre-existing, reused)
 - `BOOKINGS_FROM_EMAIL` (optional; defaults to `bookings@email.therent.guru`)
 
@@ -119,12 +128,23 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
   Room cards show ONE main photo (intentionally — backend sometimes has wrong photo counts);
   the photo is **clickable → opens large in lightbox with click-to-zoom (2.5×) + pan**.
 - Booking page with availability-constrained dates, live price summary, billing address, Stripe.
-- Modals: **"✨ How it works"** (5 steps) and **"🎁 What do I get?"** (included vs bring-your-own),
-  reusable via `[data-hiw-open]` / `[data-wdig-open]`, present on homepage + rooms page.
-- Footer = The Rent Guru company/contact block. Rent Guru logo top-right (links to homepage),
-  hidden on the rooms page (it clashed with the pills there).
-- Currently **2 live properties**: 196 (44 Bullingdon Road) and 207 (13 James Street).
-  Visibility is driven entirely by `property_live_status` — toggle rooms there, no code change.
+- **Address lookup** on the booking billing address — Postcoder UK + international (country
+  dropdown → postcode → pick → autofill) via `osr-address-lookup`; manual entry always works.
+- **Phone validation** on the booking Mobile field — `intl-tel-input` + libphonenumber (flag/dial-code
+  picker, format validation, stores E.164). Free, loaded from CDN. Users type the number normally
+  (leading 0 is fine; the country code is preselected).
+- **"Book a Viewing"** — big green button above the homepage property grid and on each rooms page.
+  Opens a reusable modal (`[data-viewing-open]`, set `data-vprop-id`/`data-vprop-addr` on the
+  trigger) showing the next 4pm slot + name/email/mobile/notes (notes mentions a virtual WhatsApp
+  viewing). Saves to `osr_viewings`, alerts mail@therent.guru. Homepage default property = 13 James St (207).
+- Modals: **"✨ How it works"**, **"🎁 What do I get?"**, **"📅 Book a Viewing"** — reusable via
+  `[data-hiw-open]` / `[data-wdig-open]` / `[data-viewing-open]`.
+- **Contact:** phone/WhatsApp = **07735 939676** (`wa.me/447735939676`). Green WhatsApp button at the
+  top of the homepage hero; phone + WhatsApp in the footer (The Rent Guru company block).
+  Rent Guru logo top-right (links to homepage), hidden on the rooms page.
+- Properties live = whatever is `is_live` in `property_live_status` (toggle there, no code change).
+  As of 2026-06-09: **207 (13 James Street)** is the focus; **196 (44 Bullingdon Road)** is being
+  taken down (almost fully let).
 
 ## 7. Deploy workflow (Oliver's standing instruction: always do this, don't ask)
 1. Edit files.
@@ -134,7 +154,21 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 5. For backend changes: `supabase functions deploy osr-<name> --project-ref rmoqgbrttdbgxntbxaxr --no-verify-jwt`.
 - Secrets / DDL (`osr_bookings.sql`) are run by Oliver in the Supabase dashboard (no DB password locally).
 
-## 8. Open items / ideas not yet done
+## 8. Licence-to-Occupy documents
+- Live in `licences/` (gitignored — guest PII). Word files: a robust **template**
+  (`Licence-to-Occupy-TEMPLATE.docx`) + filled per-guest copies (e.g. `…Alheri-Garba.docx`, `…Charles-Lobo-Clarke.docx`).
+- **It is a licence, not a tenancy** — drafted as managed serviced short-stay accommodation (no
+  exclusive possession, retained access, room substitution, temporary purpose + main home elsewhere)
+  to sit outside the Housing Act 1988 / assured-tenancy (Renters' Reform) regime.
+- **Licensor** = Home UK (SCL) Ltd, 84 Cathedral Road, Cardiff CF11 9LN; **agent** = Bannits Ltd t/a
+  The Rent Guru. Move-in 4pm, out 11am. Charge = £/week **pro-rated** for the period, paid in full on
+  arrival (less the £100 already paid online); payment to the Bannits/Wise account. Includes a **House Rules annex**.
+- **To fill the template:** replace the `[bracketed]` fields (each a single contiguous text node) via a
+  small Python `zipfile` edit of `word/document.xml`, then drop the "TEMPLATE" note table. PDF needs
+  LibreOffice/Word (not installed here) — export PDF / e-sign from Word.
+- Operational/legal docs — recommend a one-off **solicitor review** of the template.
+
+## 9. Open items / ideas not yet done
 - Add a one-click **refund-deposit** helper (currently refund via Stripe dashboard).
 - Booking page could show the actual booked room/dates on `book-success.html` (needs a small
   read-only lookup function, since `osr_bookings` is private).
@@ -143,7 +177,7 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 - Some 207 rooms have only 1 photo in the backend (data, not a bug).
 - Pin colour currently vivid red (`#ff385c`) — change to brand green/navy if preferred.
 
-## 9. Gotchas
+## 10. Gotchas
 - The Supabase project is SHARED with Rent Guru — **OSR-prefix everything**, never overwrite.
 - The anon key is read-only; the `bookings`-style table is private (RLS) — only edge functions read/write it.
 - Secrets are never committed. Live Stripe secret key only lives in Supabase secrets.
