@@ -204,7 +204,8 @@ newly-registered by web filters + browser Safe Browsing, which some networks pre
   (trustedsource.org).
 - **Check it's clean:** Google Safe Browsing
   (transparencyreport.google.com/safe-browsing/search?url=oxfordsummerrooms.com) + VirusTotal.
-- **Remove `<meta name="robots" content="noindex, nofollow">`** (on all 4 pages, left over from the
-  holding-page era). For a live site you WANT it indexed — search presence builds legitimacy and helps
-  categorisation. Then verify in Google Search Console + request indexing. **Not yet done** (Oliver to confirm).
+- ✅ **noindex removed** from `index.html` + `property.html` (now `index, follow`); `book.html` /
+  `book-success.html` kept noindex (transactional/param-driven). Added `robots.txt`, `sitemap.xml`
+  and a homepage meta description. **Still to do:** verify the domain in **Google Search Console**,
+  submit the sitemap, and request indexing (helps reputation + categorisation).
 - Reputation also builds with time + inbound links.

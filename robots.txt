@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /book.html
+Disallow: /book-success.html
+
+Sitemap: https://www.oxfordsummerrooms.com/sitemap.xml
