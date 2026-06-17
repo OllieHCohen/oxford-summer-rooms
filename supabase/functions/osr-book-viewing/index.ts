@@ -2,8 +2,9 @@
 // osr-book-viewing — Oxford Summer Rooms (namespaced, OSR-only)
 //
 // Records a viewing request in osr_viewings, computes the next 6pm viewing slot
-// (Mon-Fri, UK time; today if before 5pm on a weekday, else next weekday), and
-// sends a Telegram + email alert to mail@therent.guru.
+// (Mon-Fri, UK time; today if before 5pm on a weekday, else next weekday), sends a
+// Telegram + email alert to mail@therent.guru, and emails a confirmation to the
+// guest (cc + reply-to mail@therent.guru) from the verified email.therent.guru domain.
 //
 // Deploy:  supabase functions deploy osr-book-viewing --project-ref rmoqgbrttdbgxntbxaxr --no-verify-jwt
 // Secrets used: SUPABASE_URL/SERVICE_ROLE_KEY (auto); TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID,
@@ -74,6 +75,41 @@ ${row.notes ? `Notes: ${row.notes}` : "Notes: —"}`;
       const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: ["mail@therent.guru"], cc: ["ohc@ohcgroup.com"], subject: `Viewing request — ${name} (${row.viewing_label})`, html }) });
       if (!r.ok) console.error("Resend error:", r.status, await r.text());
     } catch (e) { console.error("Email failed:", e); }
+
+    // Confirmation email to the guest (cc + reply-to mail@therent.guru).
+    const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const propRow = row.property_address
+      ? `<tr><td style="padding:0 16px 14px;color:#6b7280;font-size:14px;vertical-align:top">Property</td><td style="padding:0 16px 14px 0;font-size:15px;font-weight:700">${esc(row.property_address)}</td></tr>`
+      : "";
+    const guestHtml =
+`<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:auto;color:#1d2330;font-size:15px;line-height:1.6">
+  <div style="border-top:4px solid #15803d;padding:24px 28px;background:#ffffff;border:1px solid #e5e7eb;border-radius:10px">
+    <div style="font-size:20px;font-weight:700;color:#15803d;margin:0 0 4px">Oxford Summer Rooms</div>
+    <div style="font-size:13px;color:#6b7280;margin:0 0 22px">Short-term summer rooms in Oxford</div>
+    <div style="font-size:22px;font-weight:700;margin:0 0 16px;color:#1d2330">Your viewing is confirmed</div>
+    <p style="margin:0 0 16px">Hi ${esc(row.first_name)},</p>
+    <p style="margin:0 0 18px">Thanks for booking a viewing with Oxford Summer Rooms. Here are your details:</p>
+    <table style="width:100%;border-collapse:collapse;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin:0 0 20px">
+      <tr>
+        <td style="padding:14px 16px 6px;color:#6b7280;font-size:14px;width:110px;vertical-align:top">Date &amp; time</td>
+        <td style="padding:14px 16px 6px 0;font-size:15px;font-weight:700">${esc(row.viewing_label)}</td>
+      </tr>
+      ${propRow}
+    </table>
+    <p style="margin:0 0 16px">We'll be in touch shortly to confirm. If you'd prefer a virtual viewing over WhatsApp, just reply and let us know — we'll call you instead.</p>
+    <p style="margin:0 0 22px">Need to change your viewing or have a question? Just reply to this email, or message us on WhatsApp at <a href="https://wa.me/447735939676" style="color:#15803d;font-weight:600;text-decoration:none">07735&nbsp;939676</a>.</p>
+    <p style="margin:0 0 4px">See you soon,</p>
+    <p style="margin:0 0 24px;font-weight:600">The Oxford Summer Rooms team</p>
+    <div style="border-top:1px solid #e5e7eb;padding-top:16px;font-size:12px;color:#6b7280;line-height:1.6">
+      Oxford Summer Rooms — operated by Bannits Ltd t/a The Rent Guru<br>
+      WhatsApp / phone: 07735 939676 &nbsp;·&nbsp; <a href="https://www.oxfordsummerrooms.com" style="color:#6b7280">www.oxfordsummerrooms.com</a>
+    </div>
+  </div>
+</div>`;
+    try {
+      const rg = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [row.email], cc: ["mail@therent.guru"], reply_to: "mail@therent.guru", subject: `Your Oxford Summer Rooms viewing — ${row.viewing_label}`, html: guestHtml }) });
+      if (!rg.ok) console.error("Guest email error:", rg.status, await rg.text());
+    } catch (e) { console.error("Guest email failed:", e); }
   }
 }
 

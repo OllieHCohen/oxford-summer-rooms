@@ -76,7 +76,8 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
   server-side). Called by the booking billing-address "Find your address". `?q=<postcode>&country=<UK|FR|US|…>`.
 - **Function `osr-book-viewing`** — saves a viewing request to `osr_viewings`, computes the next
   6pm slot (Mon–Fri, UK time; today if weekday & before 5pm, else next weekday), alerts
-  mail@therent.guru by Telegram + email.
+  mail@therent.guru by Telegram + email, and emails a branded confirmation to the guest
+  (from bookings@email.therent.guru, cc + reply-to mail@therent.guru).
 - **Table `osr_viewings`** — viewing requests (RLS on, no public policies). SQL in `supabase/osr_viewings.sql`.
 - Deploy any of them with:
   `supabase functions deploy <name> --project-ref rmoqgbrttdbgxntbxaxr --no-verify-jwt`
