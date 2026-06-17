@@ -103,7 +103,9 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
   events `checkout.session.completed` + `checkout.session.expired`.
 - **Apple Pay / Google Pay** work automatically on Stripe Checkout (enabled on the account;
   only appear on supporting devices/browsers).
-- The £100 is framed as **"goes towards your rent, fully refundable if the room isn't right."**
+- The £100 is **non-refundable** and **goes towards rent** — this wording is everywhere now:
+  booking page, success page, How-it-works modal, the Stripe Checkout product name
+  ("Holding deposit (non-refundable)"), and the booking email. (Changed from "fully refundable".)
 - **Cleaning fee removed** (was £100; `CLEANING_FEE = 0` in common.js and 0 in the function).
 - **Notifications on completed booking:** Telegram alert + email via Resend
   **to `mail@therent.guru`, cc `ohc@ohcgroup.com`**, from `bookings@email.therent.guru`
@@ -142,6 +144,9 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 - **Contact:** phone/WhatsApp = **07735 939676** (`wa.me/447735939676`). Green WhatsApp button at the
   top of the homepage hero; phone + WhatsApp in the footer (The Rent Guru company block).
   Rent Guru logo top-right (links to homepage), hidden on the rooms page.
+- **Analytics:** Statcounter (project `13299718`, invisible) on all 4 pages, just before `</body>`.
+- **Security headers:** `vercel.json` adds HSTS + X-Content-Type-Options + Referrer-Policy +
+  X-Frame-Options + Permissions-Policy. Cert is Let's Encrypt via Vercel (auto-renewed).
 - Properties live = whatever is `is_live` in `property_live_status` (toggle there, no code change).
   As of 2026-06-09: **207 (13 James Street)** is the focus; **196 (44 Bullingdon Road)** is being
   taken down (almost fully let).
@@ -152,7 +157,9 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 3. `git push`.
 4. `npx vercel --prod --yes` (deploys to production, aliases the domain).
 5. For backend changes: `supabase functions deploy osr-<name> --project-ref rmoqgbrttdbgxntbxaxr --no-verify-jwt`.
-- Secrets / DDL (`osr_bookings.sql`) are run by Oliver in the Supabase dashboard (no DB password locally).
+- Secrets / DDL (`osr_*.sql`) are run by Oliver in the Supabase dashboard (no DB password locally).
+- ⚠️ The Supabase CLI **login token expires** — if a function deploy returns `401 Unauthorized`,
+  Oliver runs `supabase login` (browser) to refresh, then redeploy.
 
 ## 8. Licence-to-Occupy documents
 - Live in `licences/` (gitignored — guest PII). Word files: a robust **template**
@@ -182,3 +189,22 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 - The anon key is read-only; the `bookings`-style table is private (RLS) — only edge functions read/write it.
 - Secrets are never committed. Live Stripe secret key only lives in Supabase secrets.
 - `supabase/.temp` is gitignored (CLI scratch).
+
+## 11. Domain security & the "not secure" reports on some networks
+The site's HTTPS is **correct**: valid Let's Encrypt cert (auto-renewed by Vercel), HTTP→HTTPS and
+apex→www redirects, HSTS on, no mixed content, plus the extra headers in `vercel.json`. So
+"not secure"/blocked reports on **university/corporate networks are not a cert problem** — they're
+**domain reputation/categorisation**: a newly-launched domain is often "uncategorised" or flagged as
+newly-registered by web filters + browser Safe Browsing, which some networks present as
+"not secure"/blocked. What helps:
+- **Submit the domain for categorisation/review** at the filters universities use: Symantec/Broadcom
+  WebPulse (sitereview.bluecoat.com), Cisco Talos/Umbrella (talosintelligence.com), Forcepoint
+  (csi.forcepoint.com), Fortinet FortiGuard (fortiguard.com/webfilter), Zscaler
+  (sitereview.zscaler.com), Palo Alto (urlfiltering.paloaltonetworks.com), McAfee/Trellix
+  (trustedsource.org).
+- **Check it's clean:** Google Safe Browsing
+  (transparencyreport.google.com/safe-browsing/search?url=oxfordsummerrooms.com) + VirusTotal.
+- **Remove `<meta name="robots" content="noindex, nofollow">`** (on all 4 pages, left over from the
+  holding-page era). For a live site you WANT it indexed — search presence builds legitimacy and helps
+  categorisation. Then verify in Google Search Console + request indexing. **Not yet done** (Oliver to confirm).
+- Reputation also builds with time + inbound links.
