@@ -1,8 +1,8 @@
 // ============================================================
 // osr-book-viewing — Oxford Summer Rooms (namespaced, OSR-only)
 //
-// Records a viewing request in osr_viewings, computes the next 4pm viewing slot
-// (Mon-Fri, UK time; today if before 3pm on a weekday, else next weekday), and
+// Records a viewing request in osr_viewings, computes the next 6pm viewing slot
+// (Mon-Fri, UK time; today if before 5pm on a weekday, else next weekday), and
 // sends a Telegram + email alert to mail@therent.guru.
 //
 // Deploy:  supabase functions deploy osr-book-viewing --project-ref rmoqgbrttdbgxntbxaxr --no-verify-jwt
@@ -24,16 +24,16 @@ const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-// Next viewing: 4pm, Mon-Fri, UK time. Today if weekday & before 3pm, else next weekday.
+// Next viewing: 6pm, Mon-Fri, UK time. Today if weekday & before 5pm, else next weekday.
 function nextViewing() {
   const f = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hour12: false });
   const p = Object.fromEntries(f.formatToParts(new Date()).map((x) => [x.type, x.value])) as Record<string, string>;
   const y = +p.year, m = +p.month, d = +p.day, hour = +p.hour;
   let dt = new Date(Date.UTC(y, m - 1, d));
   const weekday = (x: Date) => { const w = x.getUTCDay(); return w >= 1 && w <= 5; };
-  if (!(weekday(dt) && hour < 15)) { do { dt.setUTCDate(dt.getUTCDate() + 1); } while (!weekday(dt)); }
+  if (!(weekday(dt) && hour < 17)) { do { dt.setUTCDate(dt.getUTCDate() + 1); } while (!weekday(dt)); }
   const date = dt.toISOString().slice(0, 10);
-  const label = `${DAYS[dt.getUTCDay()]} ${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]} ${dt.getUTCFullYear()} at 4:00pm`;
+  const label = `${DAYS[dt.getUTCDay()]} ${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]} ${dt.getUTCFullYear()} at 6:00pm`;
   return { date, label };
 }
 
@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
     property_id: body.property_id ?? null,
     property_address: body.property_address ?? null,
     viewing_date: slot.date,
-    viewing_time: "16:00",
+    viewing_time: "18:00",
     viewing_label: slot.label,
     first_name: first, last_name: last, email, mobile,
     notes: (body.notes || "").trim() || null,

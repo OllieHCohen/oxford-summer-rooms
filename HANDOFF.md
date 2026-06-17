@@ -75,7 +75,7 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 - **Function `osr-address-lookup`** — Postcoder UK + international address-lookup proxy (key
   server-side). Called by the booking billing-address "Find your address". `?q=<postcode>&country=<UK|FR|US|…>`.
 - **Function `osr-book-viewing`** — saves a viewing request to `osr_viewings`, computes the next
-  4pm slot (Mon–Fri, UK time; today if weekday & before 3pm, else next weekday), alerts
+  6pm slot (Mon–Fri, UK time; today if weekday & before 5pm, else next weekday), alerts
   mail@therent.guru by Telegram + email.
 - **Table `osr_viewings`** — viewing requests (RLS on, no public policies). SQL in `supabase/osr_viewings.sql`.
 - Deploy any of them with:
@@ -137,7 +137,7 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
   (leading 0 is fine; the country code is preselected).
 - **"Book a Viewing"** — big green button above the homepage property grid and on each rooms page.
   Opens a reusable modal (`[data-viewing-open]`, set `data-vprop-id`/`data-vprop-addr` on the
-  trigger) showing the next 4pm slot + name/email/mobile/notes (notes mentions a virtual WhatsApp
+  trigger) showing the next 6pm slot + name/email/mobile/notes (notes mentions a virtual WhatsApp
   viewing). Saves to `osr_viewings`, alerts mail@therent.guru. Homepage default property = 13 James St (207).
 - Modals: **"✨ How it works"**, **"🎁 What do I get?"**, **"📅 Book a Viewing"** — reusable via
   `[data-hiw-open]` / `[data-wdig-open]` / `[data-viewing-open]`.

@@ -223,16 +223,16 @@ document.addEventListener('click', (e) => {
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && _wdig.classList.contains('open')) { _wdig.classList.remove('open'); _wdig.setAttribute('aria-hidden', 'true'); } });
 
-// Book-a-viewing modal. Next 4pm slot, Mon-Fri, UK time (today if weekday & before 3pm, else next weekday).
+// Book-a-viewing modal. Next 6pm slot, Mon-Fri, UK time (today if weekday & before 5pm, else next weekday).
 function nextViewingLondon() {
   const f = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/London', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false });
   const p = Object.fromEntries(f.formatToParts(new Date()).map(x => [x.type, x.value]));
   let dt = new Date(Date.UTC(+p.year, +p.month - 1, +p.day));
   const wd = x => { const w = x.getUTCDay(); return w >= 1 && w <= 5; };
-  if (!(wd(dt) && +p.hour < 15)) { do { dt.setUTCDate(dt.getUTCDate() + 1); } while (!wd(dt)); }
+  if (!(wd(dt) && +p.hour < 17)) { do { dt.setUTCDate(dt.getUTCDate() + 1); } while (!wd(dt)); }
   const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  return `${DAYS[dt.getUTCDay()]} ${dt.getUTCDate()} ${MON[dt.getUTCMonth()]} ${dt.getUTCFullYear()} at 4:00pm`;
+  return `${DAYS[dt.getUTCDay()]} ${dt.getUTCDate()} ${MON[dt.getUTCMonth()]} ${dt.getUTCFullYear()} at 6:00pm`;
 }
 
 const _view = document.getElementById('viewing');
