@@ -1,7 +1,7 @@
 // ============================================================
 // osr-create-booking — Oxford Summer Rooms (namespaced, OSR-only)
 //
-// Creates a £100 refundable holding-deposit Stripe Checkout Session and records
+// Creates a £100 non-refundable holding-deposit Stripe Checkout Session and records
 // a pending booking in the OSR-only `osr_bookings` table. The browser redirects
 // the guest to the returned `url` to pay; osr-stripe-webhook then marks it
 // "reserved". Only READS the shared Rent Guru tables; only WRITES osr_bookings.
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
   const weekly = roomRes.data?.rent_per_month ? Math.round(Number(roomRes.data.rent_per_month) * 12 / 52) : null;
   const roomLabel = memberRes.data.room_location ?? roomRes.data?.property_name ?? "Room";
 
-  // --- create Stripe Checkout Session (£100 refundable holding deposit) ---
+  // --- create Stripe Checkout Session (£100 non-refundable holding deposit) ---
   let session;
   try {
     session = await stripe.checkout.sessions.create({
@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
           currency: "gbp",
           unit_amount: HOLDING_DEPOSIT_PENCE,
           product_data: {
-            name: "Refundable holding deposit",
+            name: "Holding deposit (non-refundable)",
             description: `${roomLabel} · ${check_in} → ${check_out}`,
           },
         },

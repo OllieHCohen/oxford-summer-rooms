@@ -131,15 +131,15 @@
           </div>
           <div class="pay-box">
             <div class="price-due">
-              <div class="pd-label">Due today to reserve<small>£100 — goes towards your rent, fully refundable if the room isn’t right</small></div>
+              <div class="pd-label">Due today to reserve<small>£100 — goes towards your rent · non-refundable, so please be sure</small></div>
               <div class="pd-amt">£100</div>
             </div>
             ${PAYMENTS_ENABLED
-              ? `<div class="notice notice-info" style="margin-top:14px">🔒 Secure card payment by <strong>Stripe</strong>. You’ll be redirected to Stripe to pay the £100 refundable holding deposit and confirm your reservation.</div>`
+              ? `<div class="notice notice-info" style="margin-top:14px">🔒 Secure card payment by <strong>Stripe</strong>. You’ll be redirected to Stripe to pay the £100 non-refundable holding deposit and confirm your reservation.</div>`
               : `<div class="notice notice-info" style="margin-top:14px">🔒 Secure card payment by <strong>Stripe</strong>. Card payment isn’t switched on yet — clicking below validates and prepares your booking, ready for the Stripe step to go live.</div>`}
             <div id="formError" class="notice notice-amber" style="display:none;margin-top:14px"></div>
             <button type="submit" class="btn btn-green btn-lg btn-block" style="margin-top:16px">Pay £100 &amp; reserve room</button>
-            <div class="hint">The £100 goes towards your rent and is fully refundable if the room isn’t right for you. Bills (gas, electricity &amp; water) are included. Minimum stay 2 weeks.</div>
+            <div class="hint">The £100 goes towards your rent and is non-refundable, so please only book if you’re sure you want the room. Bills (gas, electricity &amp; water) are included. Minimum stay 2 weeks.</div>
           </div>
         </form>`}`;
 
@@ -338,7 +338,7 @@
         <div class="confirm">
           <h3>✓ Booking details captured</h3>
           <p>Thanks ${esc(p.guest.first_name)} — we’ve got your request for <strong>${esc(p.room_location || 'this room')}</strong> at ${esc(p.property_address || '')}, from <strong>${fmtDate(p.check_in)}</strong> to <strong>${fmtDate(p.check_out)}</strong> (${p.nights} nights).</p>
-          <p style="margin-top:8px">The secure <strong>£100 refundable holding deposit</strong> payment (Stripe) isn’t switched on yet — once it is, this is where you’ll pay to confirm the reservation. We’ll be in touch shortly.</p>
+          <p style="margin-top:8px">The secure <strong>£100 holding deposit</strong> payment (Stripe) isn’t switched on yet — once it is, this is where you’ll pay to confirm the reservation. We’ll be in touch shortly.</p>
           <p style="margin-top:16px"><a class="btn btn-ghost" href="index.html">← Back to all properties</a></p>
         </div>`;
       window.scrollTo({ top: 0, behavior: 'smooth' });

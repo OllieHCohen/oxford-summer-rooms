@@ -139,7 +139,7 @@ const HIW_MODAL_HTML = `
         <li><span class="hiw-num">1</span><div><div class="hiw-step-t">🛏️ Choose a room</div><div class="hiw-step-d">Browse the rooms and click <strong>“Book this room”</strong> on the one you like.</div></div></li>
         <li><span class="hiw-num">2</span><div><div class="hiw-step-t">📅 Choose your dates</div><div class="hiw-step-d">Pick your check-in and check-out from the room’s available summer dates.</div></div></li>
         <li><span class="hiw-num">3</span><div><div class="hiw-step-t">📝 Enter your details</div><div class="hiw-step-d">Add your name, contact details and billing address.</div></div></li>
-        <li><span class="hiw-num">4</span><div><div class="hiw-step-t">💳 Pay £100 to reserve your room</div><div class="hiw-step-d">This <span class="hiw-em">goes towards your rent</span> and is <span class="hiw-em">fully refundable</span> if you don’t like the room.</div></div></li>
+        <li><span class="hiw-num">4</span><div><div class="hiw-step-t">💳 Pay £100 to reserve your room</div><div class="hiw-step-d">This <span class="hiw-em">goes towards your rent</span> and is <strong>non-refundable</strong>, so please only book if you’re sure you want the room.</div></div></li>
         <li><span class="hiw-num">5</span><div><div class="hiw-step-t">✉️ We’ll be in touch</div><div class="hiw-step-d">We’ll email you a contract and confirm a time to meet you on your arrival date.</div></div></li>
       </ol>
       <div class="hiw-foot"><button class="btn" data-hiw-close>Got it</button></div>

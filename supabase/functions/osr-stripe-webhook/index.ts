@@ -73,7 +73,7 @@ Stripe payment: ${b.stripe_payment_intent ?? session.payment_intent ?? "—"}`;
     const html =
 `<div style="font-family:Arial,sans-serif;max-width:620px;margin:auto;color:#1d2330">
   <h2 style="color:#1f3a66;margin:0 0 4px">New booking — Oxford Summer Rooms</h2>
-  <p style="color:#15803d;font-weight:700;margin:0 0 16px">✅ £100 refundable holding deposit paid — room reserved</p>
+  <p style="color:#15803d;font-weight:700;margin:0 0 16px">✅ £100 holding deposit paid (non-refundable) — room reserved</p>
   <table style="border-collapse:collapse;font-size:14px;width:100%">
     ${row("Property", `#${b.property_id} — ${b.property_address ?? ""}`)}
     ${row("Room", `#${b.room_id} — ${b.room_location ?? ""}`)}
