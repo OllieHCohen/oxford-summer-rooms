@@ -303,8 +303,17 @@ a { color: var(--navy); }
 .footer-inner {
   max-width: 1100px; margin: 0 auto;
   padding: clamp(36px, 5vw, 56px) clamp(16px, 4vw, 24px) clamp(22px, 3vw, 34px);
-  display: grid; grid-template-columns: 1.5fr 1fr; gap: clamp(28px, 5vw, 64px);
+  display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: clamp(28px, 5vw, 56px);
 }
+.footer-viewing h4 { font-size: 18px; color: #fff; margin: 0 0 12px; font-weight: 700; }
+.footer-viewing p { font-size: 14px; line-height: 1.6; color: #c4ccd8; margin: 0 0 16px; max-width: 32ch; }
+.footer-viewing-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.footer-view-link { display: inline-flex; align-items: center; gap: 8px; background: #16a34a; color: #fff; text-decoration: none; font-weight: 600; font-size: 14.5px; padding: 9px 14px; border-radius: 8px; }
+.footer-view-link:hover { background: #15803d; }
+.footer-view-link svg { width: 16px; height: 16px; stroke: #fff; fill: none; }
+.footer-copy { display: inline-flex; align-items: center; gap: 7px; background: transparent; border: 1px solid rgba(255,255,255,0.28); color: #dfe5ee; font-size: 13px; font-weight: 600; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+.footer-copy:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.45); }
+.footer-copy svg { width: 15px; height: 15px; stroke: #aab6c6; fill: none; }
 .footer-brand { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 14px; letter-spacing: 0.2px; }
 .footer-brand .fb-guru { color: #c4ccd8; font-weight: 600; }
 .footer-about p { font-size: 14.5px; line-height: 1.7; color: #c4ccd8; margin: 0; max-width: 48ch; }

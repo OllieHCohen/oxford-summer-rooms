@@ -112,6 +112,14 @@ const FOOTER_HTML = `
           <li><svg viewBox="0 0 24 24" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg><span>PO Box 1145, Cardiff, UK. CF11 1WZ</span></li>
         </ul>
       </div>
+      <div class="footer-col footer-viewing">
+        <h4>Book a viewing</h4>
+        <p>See a property in person before you book — free viewings at 6pm, Mon–Fri.</p>
+        <div class="footer-viewing-actions">
+          <a class="footer-view-link" href="book-viewing.html"><svg viewBox="0 0 24 24" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Book a viewing</a>
+          <button type="button" class="footer-copy" data-copy-viewing aria-label="Copy the viewing booking link to share"><svg viewBox="0 0 24 24" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="fc-label">Copy booking link</span></button>
+        </div>
+      </div>
     </div>
     <div class="footer-bottom"><div class="footer-bottom-inner">© 2026 Bannits Ltd trading as The Rent Guru. All rights reserved.</div></div>
   </footer>`;
@@ -208,6 +216,17 @@ const VIEWING_MODAL_HTML = `
 // top bar already has a back-link + pill buttons on the right).
 const _showLogo = !(location.pathname.endsWith('property.html') || location.pathname.endsWith('book-viewing.html'));
 document.body.insertAdjacentHTML('beforeend', (_showLogo ? RG_LOGO_HTML : '') + FOOTER_HTML + LIGHTBOX_HTML + HIW_MODAL_HTML + WDIG_MODAL_HTML + VIEWING_MODAL_HTML);
+
+// Footer "Copy booking link" — copies the absolute book-viewing.html URL to share with tenants.
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-copy-viewing]');
+  if (!btn) return;
+  const url = `${location.origin}/book-viewing.html`;
+  try { await navigator.clipboard.writeText(url); }
+  catch { const t = document.createElement('textarea'); t.value = url; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+  const label = btn.querySelector('.fc-label');
+  if (label) { const orig = label.textContent; label.textContent = '✓ Copied'; setTimeout(() => { label.textContent = orig; }, 1500); }
+});
 
 // How-it-works modal — works on any page; trigger with a [data-hiw-open] element.
 const _hiw = document.getElementById('hiw');
