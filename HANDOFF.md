@@ -31,6 +31,7 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 | `property.html?id=<buildingId>` | **Rooms** page: property header (address, pills), room cards, location map. Each room has "Book this room →" |
 | `book.html?property=<id>&room=<id>` | **Booking** page: date picker (constrained to availability), price summary, billing form, £100 Stripe deposit |
 | `book-success.html?session_id=...` | Post-payment confirmation |
+| `book-viewing.html` | **Standalone multi-property viewing page** (generic URL to send tenants). Lists the currently-live **properties** (not rooms) as checkboxes (default all), books the fixed 6pm slot with the same fields as the modal, **first selected = meeting point**. Has a "copy link to share" control. `noindex` + robots-disallowed (direct-link). |
 | `common.js` | Shared: Supabase config + helpers, lightbox (click-to-zoom), carousel, card builders, footer + Rent Guru logo injection, the 3 modals (How it works / What do I get / Book a Viewing), `PAYMENTS_ENABLED` flag, function URLs (`BOOKING_FN`/`ADDRESS_FN`/`VIEWING_FN`) |
 | `styles.css` | All styles |
 | `rent-guru-logo.png`, `favicon.svg`, `oxford-summer-rooms-logo.svg`, `safari-pinned-tab.svg`, `site.webmanifest` | assets |
@@ -77,7 +78,11 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 - **Function `osr-book-viewing`** — saves a viewing request to `osr_viewings`, computes the next
   6pm slot (Mon–Fri, UK time; today if weekday & before 5pm, else next weekday), alerts
   mail@therent.guru by Telegram + email, and emails a branded confirmation to the guest
-  (from bookings@email.therent.guru, cc + reply-to mail@therent.guru).
+  (from bookings@email.therent.guru, cc + reply-to mail@therent.guru). Accepts either a single
+  property (modal: `property_id`/`property_address`) or a multi-select list (book-viewing.html:
+  `properties:[{id,address}]`); when several are chosen the **first is the meeting point**, and all
+  three notifications list every selected property + "meet at the first at 6pm". `source` values:
+  `homepage` | `property` | `viewings-page`.
 - **Table `osr_viewings`** — viewing requests (RLS on, no public policies). SQL in `supabase/osr_viewings.sql`.
 - Deploy any of them with:
   `supabase functions deploy <name> --project-ref rmoqgbrttdbgxntbxaxr --no-verify-jwt`
