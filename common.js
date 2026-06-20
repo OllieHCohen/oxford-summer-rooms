@@ -88,6 +88,7 @@ function bookableWindows(windows) {
 const ICON_PLAN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h6V3M21 14h-6v7M9 14H3M15 3v6h6"/></svg>';
 const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
 const ICON_360 = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="10" ry="5"/><path d="M7 12a5 5 0 0 0 10 0"/></svg>';
+const ICON_PHOTOS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.2"/><path d="M8 6l1.5-2.5h5L16 6"/></svg>';
 
 /* ---------- gallery registry ---------- */
 const GAL = {};
@@ -437,17 +438,30 @@ function gapLabel(building) {
     ? `Summer gap: ${fmtDate(building.preceding_agreement_end)} – ${fmtDate(building.start_date)}` : '';
 }
 
-/* Building photo gallery: thumbnail grid; click a thumb to open the lightbox carousel. */
-function buildingGallery(photos) {
-  if (!photos || !photos.length) return '';
-  const gid = registerGallery(photos);
-  const thumbs = photos.map((p, i) =>
-    `<img class="gallery-thumb" src="${esc(p.url)}" alt="${esc(p.title || 'Property photo')}" loading="lazy" data-gallery="${gid}" data-index="${i}">`
-  ).join('');
+/* Building photo gallery: thumbnail grid (count badge on the first thumb) plus
+   floor-plan/video chips. Click a thumb to open the lightbox carousel. */
+function buildingGallery(photos, floorplans, videos) {
+  const hasPhotos = photos && photos.length;
+  const hasExtras = (floorplans && floorplans.length) || (videos && videos.length);
+  if (!hasPhotos && !hasExtras) return '';
+  let grid = '';
+  if (hasPhotos) {
+    const gid = registerGallery(photos);
+    const thumbs = photos.map((p, i) => {
+      const img = `<img class="gallery-thumb" src="${esc(p.url)}" alt="${esc(p.title || 'Property photo')}" loading="lazy" data-gallery="${gid}" data-index="${i}">`;
+      if (i === 0 && photos.length > 1) {
+        return `<div class="gallery-cell" data-gallery="${gid}" data-index="0">${img}<span class="gallery-count">${ICON_PHOTOS} ${photos.length} photos</span></div>`;
+      }
+      return img;
+    }).join('');
+    grid = `<div class="gallery-grid">${thumbs}</div>`;
+  }
+  const extras = hasExtras ? `<div class="gallery-extras">${extrasChips(floorplans, videos)}</div>` : '';
   return `
     <div class="gallery">
       <h4 class="gallery-title">Photos of the property</h4>
-      <div class="gallery-grid">${thumbs}</div>
+      ${grid}
+      ${extras}
     </div>`;
 }
 
