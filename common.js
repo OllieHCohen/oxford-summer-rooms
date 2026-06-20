@@ -204,8 +204,9 @@ const VIEWING_MODAL_HTML = `
     </div>
   </div>`;
 
-// Rent Guru logo on every page except the rooms (property) page.
-const _showLogo = !location.pathname.endsWith('property.html');
+// Rent Guru logo on every page except the rooms + book-a-viewing pages (their
+// top bar already has a back-link + pill buttons on the right).
+const _showLogo = !(location.pathname.endsWith('property.html') || location.pathname.endsWith('book-viewing.html'));
 document.body.insertAdjacentHTML('beforeend', (_showLogo ? RG_LOGO_HTML : '') + FOOTER_HTML + LIGHTBOX_HTML + HIW_MODAL_HTML + WDIG_MODAL_HTML + VIEWING_MODAL_HTML);
 
 // How-it-works modal — works on any page; trigger with a [data-hiw-open] element.
