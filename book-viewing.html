@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, follow" />
+  <title>Book a viewing — Oxford Summer Rooms</title>
+  <link href="https://fonts.googleapis.com/css?family=Quicksand:400,500,600,700" rel="stylesheet" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="manifest" href="site.webmanifest" />
+  <link rel="mask-icon" href="safari-pinned-tab.svg" color="#1f3a66" />
+  <meta name="msapplication-TileColor" content="#1f3a66" />
+  <meta name="theme-color" content="#ffffff" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="page-top"><a class="backlink" href="index.html">← All properties</a><span class="pill-actions">
+    <button class="hiw-btn wdig-btn" data-wdig-open>🎁 What do I get?</button>
+    <button class="hiw-btn" data-hiw-open>✨ How it works</button></span></div>
+
+  <main class="listings">
+    <section class="building">
+      <div class="building-body">
+        <h3>📅 Book a viewing</h3>
+        <p class="bv-intro">Choose the propert<span>ies</span> you'd like to see, then leave your details. Free viewings run at <strong id="bvSlot">…</strong>.</p>
+
+        <div id="bvFormWrap">
+          <h4 class="bv-h">Which properties would you like to view?</h4>
+          <div id="bvProps" class="bv-props"><div class="status">Loading properties…</div></div>
+          <p class="bv-meet" id="bvMeet"></p>
+
+          <form id="bvForm" novalidate>
+            <div class="field-row">
+              <div class="field" id="bf-first"><label for="bFirst">First name <span class="req">*</span></label><input id="bFirst" autocomplete="given-name"><div class="field-error">Please enter your first name.</div></div>
+              <div class="field" id="bf-last"><label for="bLast">Last name <span class="req">*</span></label><input id="bLast" autocomplete="family-name"><div class="field-error">Please enter your last name.</div></div>
+            </div>
+            <div class="field-row">
+              <div class="field" id="bf-email"><label for="bEmail">Email <span class="req">*</span></label><input id="bEmail" type="email" autocomplete="email"><div class="field-error">Please enter a valid email.</div></div>
+              <div class="field" id="bf-mobile"><label for="bMobile">Mobile <span class="req">*</span></label><input id="bMobile" type="tel" autocomplete="tel"><div class="field-error">Please enter your mobile number.</div></div>
+            </div>
+            <div class="field"><label for="bNotes">Notes (optional)</label><textarea id="bNotes" rows="3" placeholder="Any notes — e.g. you'd prefer a virtual WhatsApp viewing instead. We can call you on WhatsApp."></textarea></div>
+            <div class="notice notice-amber" id="bvError" style="display:none;margin:8px 0 0"></div>
+            <button type="submit" class="btn btn-green btn-lg btn-block" id="bvSubmit" style="margin-top:16px">Book a viewing</button>
+          </form>
+        </div>
+
+        <div id="bvConfirm" style="display:none">
+          <h3 style="color:#15803d;margin:4px 0 10px;font-size:20px">✓ Viewing booked</h3>
+          <p id="bvcMsg" style="color:#3a4252;font-size:15px;line-height:1.65"></p>
+          <a class="btn btn-block" href="index.html" style="margin-top:14px">← Back to all properties</a>
+        </div>
+
+        <div class="bv-share">
+          <span class="bv-share-label">Link to share with tenants</span>
+          <div class="bv-share-row">
+            <input id="bvUrl" readonly aria-label="Page link">
+            <button type="button" class="btn" id="bvCopy">📋 Copy</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="common.js"></script>
+  <script>
+    let BV_PROPS = [];
+
+    function checkedProps() {
+      return [...document.querySelectorAll('.vp-check:checked')].map(c => BV_PROPS[+c.value]).filter(Boolean);
+    }
+
+    function updateMeet() {
+      const sel = checkedProps();
+      const el = document.getElementById('bvMeet');
+      if (!sel.length) { el.className = 'bv-meet bv-meet-warn'; el.textContent = 'Please choose at least one property to view.'; return; }
+      el.className = 'bv-meet';
+      el.innerHTML = sel.length > 1
+        ? `You've selected ${sel.length} properties. We'll meet you at the first — <strong>${esc(sel[0].address)}</strong> — at 6:00pm and see the others from there.`
+        : `We'll meet you at <strong>${esc(sel[0].address)}</strong> at 6:00pm.`;
+    }
+
+    async function loadProps() {
+      const wrap = document.getElementById('bvProps');
+      try {
+        const { liveIds, heroById } = await fetchLive();
+        if (!liveIds.size) { wrap.innerHTML = '<div class="status">No properties are live right now. Please check back soon.</div>'; return; }
+
+        const [buildings, members] = await Promise.all([
+          sb('summer_void_properties?select=property_id,property_address,city,role'),
+          sb('summer_void_members?select=void_property_id,property_id')
+        ]);
+
+        const liveRoomsByBuilding = new Map();
+        for (const m of members) {
+          if (!liveIds.has(m.property_id)) continue;
+          (liveRoomsByBuilding.get(m.void_property_id) || liveRoomsByBuilding.set(m.void_property_id, []).get(m.void_property_id)).push(m);
+        }
+        const visible = buildings.filter(b =>
+          (liveRoomsByBuilding.get(b.property_id) || []).length > 0 || (b.role === 'standalone' && liveIds.has(b.property_id)));
+        if (!visible.length) { wrap.innerHTML = '<div class="status">No properties are live right now. Please check back soon.</div>'; return; }
+
+        const liveRoomIds = [...new Set([].concat(...[...liveRoomsByBuilding.values()].map(rs => rs.map(r => r.property_id))))];
+        const detailIds = [...new Set([...liveRoomIds, ...visible.map(b => b.property_id)])];
+        const detail = await sb(`bannits_property_cache?property_id=in.${inList(detailIds)}&select=property_id,rent_per_month,images`);
+        const detailById = new Map(detail.map(d => [d.property_id, d]));
+
+        BV_PROPS = visible.sort((a, b) => a.property_id - b.property_id).map(b => {
+          const rooms = liveRoomsByBuilding.get(b.property_id) || [];
+          const weeks = rooms.map(r => detailById.get(r.property_id)).filter(Boolean).map(d => weeklyRent(d.rent_per_month));
+          const bDetail = detailById.get(b.property_id);
+          const photos = applyHero(classifyImages(bDetail && bDetail.images).photos, heroById.get(b.property_id));
+          return { id: b.property_id, address: b.property_address || 'Property', thumb: photos[0] ? photos[0].url : '', fromWeek: weeks.length ? Math.min(...weeks) : null };
+        });
+
+        wrap.innerHTML = BV_PROPS.map((p, i) => `
+          <label class="vp-option">
+            <input type="checkbox" class="vp-check" value="${i}" checked>
+            ${p.thumb ? `<img class="vp-thumb" src="${esc(p.thumb)}" alt="${esc(p.address)}" loading="lazy">` : '<span class="vp-thumb vp-thumb-empty"></span>'}
+            <span class="vp-info"><span class="vp-addr">${esc(p.address)}</span>${p.fromWeek ? `<span class="vp-price">from ${fmtGBP(p.fromWeek)}/week</span>` : ''}</span>
+          </label>`).join('');
+        updateMeet();
+      } catch (e) {
+        wrap.innerHTML = '<div class="status">Sorry — we couldn’t load properties right now. Please refresh.</div>';
+        console.error(e);
+      }
+    }
+
+    async function bvSubmit(e) {
+      if (e) e.preventDefault();
+      const err = document.getElementById('bvError'); err.style.display = 'none';
+      const v = id => (document.getElementById(id)?.value || '').trim();
+      const setErr = (id, bad) => { const el = document.getElementById(id); if (el) el.classList.toggle('invalid', bad); return bad; };
+      const sel = checkedProps();
+      let ok = true;
+      if (!sel.length) { err.textContent = 'Please choose at least one property to view.'; err.style.display = 'block'; ok = false; }
+      if (setErr('bf-first', !v('bFirst'))) ok = false;
+      if (setErr('bf-last', !v('bLast'))) ok = false;
+      if (setErr('bf-email', !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('bEmail')))) ok = false;
+      if (setErr('bf-mobile', v('bMobile').replace(/\D/g, '').length < 7)) ok = false;
+      if (!ok) return;
+
+      const btn = document.getElementById('bvSubmit'); const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Booking…';
+      try {
+        const res = await fetch(VIEWING_FN, {
+          method: 'POST',
+          headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            first_name: v('bFirst'), last_name: v('bLast'), email: v('bEmail'), mobile: v('bMobile'), notes: v('bNotes'),
+            properties: sel.map(p => ({ id: p.id, address: p.address })), source: 'viewings-page'
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.ok) {
+          document.getElementById('bvFormWrap').style.display = 'none';
+          const c = document.getElementById('bvConfirm'); c.style.display = 'block';
+          const meet = sel[0].address;
+          document.getElementById('bvcMsg').innerHTML =
+            `Thanks ${esc(v('bFirst'))}! Your viewing is booked for <strong>${esc(data.viewing_label || '')}</strong>. ` +
+            (sel.length > 1
+              ? `We'll meet you at the first property, <strong>${esc(meet)}</strong>, and see the others from there. `
+              : `We'll meet you at <strong>${esc(meet)}</strong>. `) +
+            `We've emailed you a confirmation. If you asked for a virtual WhatsApp viewing in your notes, we'll call you on WhatsApp instead.`;
+          c.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          err.textContent = data.error || 'Sorry, something went wrong. Please try again.'; err.style.display = 'block';
+        }
+      } catch (e) {
+        err.textContent = 'Network error — please try again.'; err.style.display = 'block'; console.error(e);
+      } finally { btn.disabled = false; btn.textContent = orig; }
+    }
+
+    // Copy-link control
+    (function () {
+      const url = location.origin + location.pathname;
+      document.getElementById('bvUrl').value = url;
+      document.getElementById('bvCopy').addEventListener('click', async () => {
+        const b = document.getElementById('bvCopy'); const orig = b.textContent;
+        try { await navigator.clipboard.writeText(url); }
+        catch { const i = document.getElementById('bvUrl'); i.select(); document.execCommand('copy'); }
+        b.textContent = '✓ Copied'; setTimeout(() => { b.textContent = orig; }, 1500);
+      });
+    })();
+
+    document.getElementById('bvSlot').textContent = nextViewingLondon();
+    document.getElementById('bvProps').addEventListener('change', updateMeet);
+    document.getElementById('bvForm').addEventListener('submit', bvSubmit);
+    loadProps();
+  </script>
+  <!-- Default Statcounter code for Oxford Summer rooms http://www.oxfordsummerrooms.com -->
+  <script type="text/javascript">
+    var sc_project = 13299718;
+    var sc_invisible = 1;
+    var sc_security = "4dd251d8";
+  </script>
+  <script type="text/javascript" src="https://www.statcounter.com/counter/counter.js" async></script>
+  <noscript><div class="statcounter"><a title="Web Analytics" href="https://statcounter.com/" target="_blank"><img class="statcounter" src="https://c.statcounter.com/13299718/0/4dd251d8/1/" alt="Web Analytics" referrerPolicy="no-referrer-when-downgrade"></a></div></noscript>
+  <!-- End of Statcounter Code -->
+</body>
+
+</html>

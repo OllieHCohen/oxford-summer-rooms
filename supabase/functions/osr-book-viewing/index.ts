@@ -6,6 +6,10 @@
 // Telegram + email alert to mail@therent.guru, and emails a confirmation to the
 // guest (cc + reply-to mail@therent.guru) from the verified email.therent.guru domain.
 //
+// Accepts either a single property (legacy modal: property_id/property_address) or a
+// multi-select list (book-viewing.html: properties: [{id, address}]). When several are
+// chosen the first is the meeting point ("meet at the first property at 6pm").
+//
 // Deploy:  supabase functions deploy osr-book-viewing --project-ref rmoqgbrttdbgxntbxaxr --no-verify-jwt
 // Secrets used: SUPABASE_URL/SERVICE_ROLE_KEY (auto); TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID,
 //   RESEND_API_KEY, BOOKINGS_FROM_EMAIL (optional).
@@ -38,14 +42,17 @@ function nextViewing() {
   return { date, label };
 }
 
-async function notify(row: any) {
+async function notify(row: any, view: { addresses: string[]; multi: boolean; meetAddress: string | null }) {
   const name = `${row.first_name} ${row.last_name}`.trim();
+  const tgPropsBlock = view.multi
+    ? `Properties to view:\n${view.addresses.map((a) => `• ${a}`).join("\n")}\nMeet at the first property: ${view.meetAddress} at 6:00pm`
+    : `Property: ${view.meetAddress ?? "—"}`;
   const tgToken = Deno.env.get("TELEGRAM_BOT_TOKEN"), tgChat = Deno.env.get("TELEGRAM_CHAT_ID");
   if (tgToken && tgChat) {
     const text =
 `📅 NEW VIEWING REQUEST — Oxford Summer Rooms
 
-Property: ${row.property_address ?? "—"}
+${tgPropsBlock}
 Viewing: ${row.viewing_label}
 
 ${name}
@@ -63,7 +70,9 @@ ${row.notes ? `Notes: ${row.notes}` : "Notes: —"}`;
 `<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#1d2330">
   <h2 style="color:#15803d;margin:0 0 12px">New viewing request — Oxford Summer Rooms</h2>
   <table style="border-collapse:collapse;font-size:14px;width:100%">
-    ${row2("Property", row.property_address ?? "—")}
+    ${view.multi
+      ? row2("Properties", view.addresses.join("<br>")) + row2("Meet at", `${view.meetAddress} at 6:00pm (first property)`)
+      : row2("Property", view.meetAddress ?? "—")}
     ${row2("Viewing", row.viewing_label)}
     ${row2("Name", name)}
     ${row2("Email", row.email)}
@@ -78,8 +87,15 @@ ${row.notes ? `Notes: ${row.notes}` : "Notes: —"}`;
 
     // Confirmation email to the guest (cc + reply-to mail@therent.guru).
     const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    const propRow = row.property_address
-      ? `<tr><td style="padding:0 16px 14px;color:#6b7280;font-size:14px;vertical-align:top">Property</td><td style="padding:0 16px 14px 0;font-size:15px;font-weight:700">${esc(row.property_address)}</td></tr>`
+    const propPad = view.multi ? 6 : 14;
+    const propRow = view.addresses.length
+      ? `<tr><td style="padding:0 16px ${propPad}px;color:#6b7280;font-size:14px;vertical-align:top">${view.multi ? "Properties" : "Property"}</td><td style="padding:0 16px ${propPad}px 0;font-size:15px;font-weight:700">${view.addresses.map((a) => esc(a)).join("<br>")}</td></tr>`
+      : "";
+    const meetRow = view.multi && view.meetAddress
+      ? `<tr><td style="padding:0 16px 14px;color:#6b7280;font-size:14px;vertical-align:top">Meeting point</td><td style="padding:0 16px 14px 0;font-size:15px;font-weight:700">${esc(view.meetAddress)}</td></tr>`
+      : "";
+    const meetLine = view.multi && view.meetAddress
+      ? `<p style="margin:0 0 16px">You've asked to view ${view.addresses.length} properties — please meet us at the first one, <strong>${esc(view.meetAddress)}</strong>, at 6:00pm and we'll take you round the others from there.</p>`
       : "";
     const guestHtml =
 `<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:auto;color:#1d2330;font-size:15px;line-height:1.6">
@@ -95,7 +111,9 @@ ${row.notes ? `Notes: ${row.notes}` : "Notes: —"}`;
         <td style="padding:14px 16px 6px 0;font-size:15px;font-weight:700">${esc(row.viewing_label)}</td>
       </tr>
       ${propRow}
+      ${meetRow}
     </table>
+    ${meetLine}
     <p style="margin:0 0 16px">We'll be in touch shortly to confirm. If you'd prefer a virtual viewing over WhatsApp, just reply and let us know — we'll call you instead.</p>
     <p style="margin:0 0 22px">Need to change your viewing or have a question? Just reply to this email, or message us on WhatsApp at <a href="https://wa.me/447735939676" style="color:#15803d;font-weight:600;text-decoration:none">07735&nbsp;939676</a>.</p>
     <p style="margin:0 0 4px">See you soon,</p>
@@ -125,11 +143,29 @@ Deno.serve(async (req) => {
   if (!first || !last || !email || !mobile) return json({ error: "Please fill in your name, email and mobile." }, 400);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "Please enter a valid email." }, 400);
 
+  // Selected properties. The multi-select page sends `properties: [{id, address}]`;
+  // the legacy modal sends a single property_id/property_address. First = meeting point.
+  const rawProps = Array.isArray(body.properties) ? body.properties : [];
+  let selected = rawProps
+    .map((p: any) => ({
+      id: p && p.id != null && !isNaN(parseInt(p.id, 10)) ? parseInt(p.id, 10) : null,
+      address: p && typeof p.address === "string" ? p.address.trim() : "",
+    }))
+    .filter((p: any) => p.address || p.id != null);
+  if (!selected.length) {
+    const addr = (body.property_address || "").trim();
+    if (addr || body.property_id != null) {
+      selected = [{ id: body.property_id != null ? parseInt(body.property_id, 10) : null, address: addr }];
+    }
+  }
+  const addresses = selected.map((s) => s.address).filter(Boolean);
+  const view = { addresses, multi: selected.length > 1, meetAddress: addresses[0] ?? null };
+
   const slot = nextViewing();
   const record = {
-    source: body.source === "property" ? "property" : "homepage",
-    property_id: body.property_id ?? null,
-    property_address: body.property_address ?? null,
+    source: ["property", "viewings-page", "homepage"].includes(body.source) ? body.source : "homepage",
+    property_id: selected[0]?.id ?? null,
+    property_address: addresses.length ? addresses.join(" • ") : null,
     viewing_date: slot.date,
     viewing_time: "18:00",
     viewing_label: slot.label,
@@ -140,7 +176,7 @@ Deno.serve(async (req) => {
   const { error } = await supabase.from("osr_viewings").insert(record);
   if (error) { console.error("Insert error:", error); return json({ error: "Could not save your request. Please try again." }, 500); }
 
-  try { await notify(record); } catch (e) { console.error("notify failed:", e); }
+  try { await notify(record, view); } catch (e) { console.error("notify failed:", e); }
 
   return json({ ok: true, viewing_label: slot.label, viewing_date: slot.date });
 });
