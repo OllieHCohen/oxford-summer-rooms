@@ -168,6 +168,18 @@ a { color: var(--navy); }
 .terms { font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 10px; margin-top: auto; line-height: 1.5; }
 .room-unavail { font-size: 12.5px; font-weight: 600; color: var(--muted); text-align: center; padding: 11px; background: #f4f6fa; border-radius: 10px; }
 
+/* Building photo gallery */
+.gallery { margin: 20px 0 4px; }
+.gallery-title { font-size: 15px; font-weight: 700; color: var(--navy); margin: 0 0 12px; }
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.gallery-thumb {
+  width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block;
+  border-radius: 10px; background: #dfe3ec; cursor: zoom-in;
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.gallery-thumb:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.14); }
+@media (max-width: 640px) { .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); } }
+
 /* Location map */
 .location { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
 .loc-title { font-size: 15px; font-weight: 700; color: var(--navy); margin: 0 0 12px; }

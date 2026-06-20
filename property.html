@@ -84,6 +84,7 @@
               <h3>${esc(building.property_address || (bDetail && bDetail.property_name) || 'Property')}</h3>
               <div class="building-meta">${metaBits.map(m => `<span>${esc(m)}</span>`).join('')}</div>
               <div class="pills">${pillsHtml(meta)}</div>
+              ${buildingGallery(photos)}
               <div class="viewing-cta" style="margin-top:18px">
                 <button class="btn btn-green btn-lg" data-viewing-open data-vprop-id="${id}" data-vprop-addr="${esc(building.property_address || '')}">📅 Book a Viewing</button>
                 <span class="viewing-cta-sub">Prefer to see it first? Book a free viewing.</span>

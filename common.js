@@ -437,6 +437,20 @@ function gapLabel(building) {
     ? `Summer gap: ${fmtDate(building.preceding_agreement_end)} – ${fmtDate(building.start_date)}` : '';
 }
 
+/* Building photo gallery: thumbnail grid; click a thumb to open the lightbox carousel. */
+function buildingGallery(photos) {
+  if (!photos || !photos.length) return '';
+  const gid = registerGallery(photos);
+  const thumbs = photos.map((p, i) =>
+    `<img class="gallery-thumb" src="${esc(p.url)}" alt="${esc(p.title || 'Property photo')}" loading="lazy" data-gallery="${gid}" data-index="${i}">`
+  ).join('');
+  return `
+    <div class="gallery">
+      <h4 class="gallery-title">Photos of the property</h4>
+      <div class="gallery-grid">${thumbs}</div>
+    </div>`;
+}
+
 function locationSection(lat, lng, address) {
   if (!lat || !lng) return '';
   return `
