@@ -34,9 +34,16 @@
     async function load() {
       const propertyId = parseInt(param('property'), 10);
       const roomId = parseInt(param('room'), 10);
-      const statusEl = document.getElementById('status');
       if (propertyId) document.getElementById('backlink').href = `property.html?id=${propertyId}`;
-      if (!propertyId || !roomId) { statusEl.textContent = 'This booking link is invalid.'; return; }
+      // Came straight from a room ("Book this room") → load it directly, no picker.
+      if (propertyId && roomId) { loadRoom(propertyId, roomId); return; }
+      // No specific room (e.g. the homepage "Reserve a room" button) → show a room picker.
+      loadPicker();
+    }
+
+    async function loadRoom(propertyId, roomId, target) {
+      target = target || document.getElementById('content');
+      const statusEl = document.getElementById('status');
       try {
         const { liveIds, heroById } = await fetchLive();
         const [memberRows, bRows] = await Promise.all([
@@ -45,7 +52,7 @@
         ]);
         const member = memberRows[0], building = bRows[0];
         if (!member || !building || !liveIds.has(roomId)) {
-          statusEl.innerHTML = 'This room isn’t available to book right now. <a href="index.html">See all properties →</a>'; return;
+          target.innerHTML = '<div class="notice notice-amber">This room isn’t available to book right now. <a href="index.html">See all properties →</a></div>'; statusEl.style.display = 'none'; return;
         }
         const [detailRows, availability] = await Promise.all([
           sb(`bannits_property_cache?property_id=eq.${roomId}&select=property_id,property_name,rent_per_month,number_of_beds,number_of_bathrooms,images`),
@@ -53,16 +60,72 @@
         ]);
         const detail = detailRows[0] || {};
         const windows = bookableWindows(availability);
-        renderBooking({ propertyId, roomId, member, building, detail, windows, hero: heroById.get(roomId) });
+        renderBooking({ propertyId, roomId, member, building, detail, windows, hero: heroById.get(roomId), target });
         statusEl.style.display = 'none';
       } catch (err) {
-        statusEl.textContent = 'Sorry — we couldn’t load this booking page right now.';
+        target.innerHTML = '<div class="notice notice-amber">Sorry — we couldn’t load this room right now.</div>';
+        document.getElementById('status').style.display = 'none';
         console.error(err);
       }
     }
 
+    let PICKER_ROOMS = [];
+    async function loadPicker() {
+      const statusEl = document.getElementById('status');
+      document.getElementById('backlink').textContent = '← All properties';
+      const noRooms = () => { statusEl.innerHTML = 'No rooms are available to book right now. <a href="index.html">See all properties →</a>'; };
+      try {
+        const { liveIds } = await fetchLive();
+        if (!liveIds.size) return noRooms();
+        const [buildings, members] = await Promise.all([
+          sb('summer_void_properties?select=property_id,property_address'),
+          sb('summer_void_members?select=void_property_id,property_id,room_location')
+        ]);
+        const addrByBuilding = new Map(buildings.map(b => [b.property_id, b.property_address || 'Property']));
+        const liveMembers = members.filter(m => liveIds.has(m.property_id));
+        if (!liveMembers.length) return noRooms();
+        const roomIds = [...new Set(liveMembers.map(m => m.property_id))];
+        const detail = await sb(`bannits_property_cache?property_id=in.${inList(roomIds)}&select=property_id,property_name,rent_per_month`);
+        const detById = new Map(detail.map(d => [d.property_id, d]));
+        PICKER_ROOMS = liveMembers.map(m => {
+          const d = detById.get(m.property_id) || {};
+          return {
+            buildingId: m.void_property_id, roomId: m.property_id,
+            address: addrByBuilding.get(m.void_property_id) || 'Property',
+            name: m.room_location || d.property_name || `Room #${m.property_id}`,
+            week: d.rent_per_month ? weeklyRent(d.rent_per_month) : null
+          };
+        }).sort((a, b) => a.address.localeCompare(b.address) || (a.week || 0) - (b.week || 0));
+        statusEl.style.display = 'none';
+        renderPicker();
+      } catch (err) { statusEl.textContent = 'Sorry — we couldn’t load available rooms right now.'; console.error(err); }
+    }
+
+    function renderPicker() {
+      const opts = PICKER_ROOMS.map((r, i) =>
+        `<option value="${i}">${esc(r.address)} — ${esc(r.name)}${r.week ? ` · ${fmtGBP(r.week)}/week` : ''}</option>`).join('');
+      document.getElementById('content').innerHTML = `
+        <div class="picker-card">
+          <h3>Reserve your room</h3>
+          <p class="picker-sub">Choose the room you’d like to reserve, then fill in your details below to pay the £100 holding deposit.</p>
+          <div class="field"><label for="roomPick">Room <span class="req">*</span></label>
+            <select id="roomPick"><option value="">Select a room…</option>${opts}</select></div>
+        </div>
+        <div id="pickerBooking"></div>`;
+      document.getElementById('roomPick').addEventListener('change', (e) => {
+        const r = PICKER_ROOMS[parseInt(e.target.value, 10)];
+        const host = document.getElementById('pickerBooking');
+        if (phoneIti) { try { phoneIti.destroy(); } catch (_) {} phoneIti = null; }
+        if (!r) { host.innerHTML = ''; return; }
+        document.getElementById('backlink').href = `property.html?id=${r.buildingId}`;
+        host.innerHTML = '<div class="status">Loading room…</div>';
+        loadRoom(r.buildingId, r.roomId, host);
+      });
+    }
+
     function renderBooking(ctx) {
       const { propertyId, roomId, member, building, detail, windows, hero } = ctx;
+      const target = ctx.target || document.getElementById('content');
       const name = member.room_location || detail.property_name || 'Room';
       const cls = classifyImages(detail.images);
       const photos = applyHero(cls.photos, hero);
@@ -76,7 +139,7 @@
         `${fmtDate(w.window_start)} &ndash; ${fmtDate(w.window_end)} <span class="an-nights">(up to ${nightsBetween(w.window_start, w.window_end)} nights)</span>`).join('<br>')}
         <div class="an-min">Minimum stay 2 weeks. Pick a check-in and check-out within ${windows.length > 1 ? 'one of these periods' : 'this period'}.</div></div>` : '';
 
-      document.getElementById('content').innerHTML = `
+      target.innerHTML = `
         <div class="summary-card">
           ${thumb ? `<img src="${esc(thumb)}" alt="${esc(name)}">` : ''}
           <div>

@@ -177,38 +177,13 @@ const WDIG_MODAL_HTML = `
     </div>
   </div>`;
 
+// The Book-a-Viewing modal now embeds the standalone book-viewing.html page
+// (in ?embed=1 mode, which hides its page chrome) so there's a single source of truth.
 const VIEWING_MODAL_HTML = `
   <div class="hiw viewing" id="viewing" aria-hidden="true">
-    <div class="hiw-card">
-      <div class="hiw-head wdig-head">
-        <button class="hiw-close" data-viewing-close aria-label="Close">×</button>
-        <h2>📅 Book a Viewing</h2>
-        <p id="viewSlot">Finding the next viewing…</p>
-      </div>
-      <div class="hiw-steps">
-        <div id="viewFormWrap">
-          <form id="viewForm" novalidate>
-            <div class="field-row">
-              <div class="field" id="vf-first"><label for="vFirst">First name <span class="req">*</span></label><input id="vFirst" autocomplete="given-name"><div class="field-error">Please enter your first name.</div></div>
-              <div class="field" id="vf-last"><label for="vLast">Last name <span class="req">*</span></label><input id="vLast" autocomplete="family-name"><div class="field-error">Please enter your last name.</div></div>
-            </div>
-            <div class="field-row">
-              <div class="field" id="vf-email"><label for="vEmail">Email <span class="req">*</span></label><input id="vEmail" type="email" autocomplete="email"><div class="field-error">Please enter a valid email.</div></div>
-              <div class="field" id="vf-mobile"><label for="vMobile">Mobile <span class="req">*</span></label><input id="vMobile" type="tel" autocomplete="tel"><div class="field-error">Please enter your mobile number.</div></div>
-            </div>
-            <div class="field"><label for="vNotes">Notes (optional)</label><textarea id="vNotes" rows="3" placeholder="Any notes — e.g. you'd prefer a virtual WhatsApp viewing instead. We can call you on WhatsApp."></textarea></div>
-            <div class="notice notice-amber" id="vError" style="display:none;margin-top:6px"></div>
-          </form>
-        </div>
-        <div id="viewConfirm" style="display:none">
-          <h3 style="color:#15803d;margin:4px 0 8px;font-size:18px">✓ Viewing booked</h3>
-          <p id="vcMsg" style="color:#3a4252;font-size:14.5px;line-height:1.6"></p>
-        </div>
-      </div>
-      <div class="hiw-foot">
-        <button type="button" class="btn btn-green btn-block" id="vSubmit">Book a viewing</button>
-        <button type="button" class="btn btn-ghost btn-block" id="vClose2" data-viewing-close style="display:none">Close</button>
-      </div>
+    <div class="hiw-card viewing-card">
+      <button class="hiw-close" data-viewing-close aria-label="Close">×</button>
+      <iframe id="viewingFrame" class="viewing-frame" title="Book a viewing"></iframe>
     </div>
   </div>`;
 
@@ -257,60 +232,23 @@ function nextViewingLondon() {
 }
 
 const _view = document.getElementById('viewing');
-let _viewProp = { id: null, address: '' };
-function openViewing(trigger) {
-  _viewProp = { id: (trigger && trigger.dataset.vpropId) || null, address: (trigger && trigger.dataset.vpropAddr) || '' };
-  ['vFirst', 'vLast', 'vEmail', 'vMobile', 'vNotes'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
-  document.querySelectorAll('#viewForm .field').forEach(f => f.classList.remove('invalid'));
-  document.getElementById('vError').style.display = 'none';
-  document.getElementById('viewFormWrap').style.display = '';
-  document.getElementById('viewConfirm').style.display = 'none';
-  document.getElementById('vSubmit').style.display = '';
-  document.getElementById('vClose2').style.display = 'none';
-  document.getElementById('viewSlot').textContent = `Next viewing: ${nextViewingLondon()}`;
+function openViewing() {
+  const frame = document.getElementById('viewingFrame');
+  if (frame && frame.src.indexOf('book-viewing.html') === -1) frame.src = 'book-viewing.html?embed=1';
   _view.classList.add('open'); _view.setAttribute('aria-hidden', 'false');
 }
-function closeViewing() { _view.classList.remove('open'); _view.setAttribute('aria-hidden', 'true'); }
-async function submitViewing() {
-  const errEl = document.getElementById('vError'); errEl.style.display = 'none';
-  const v = id => (document.getElementById(id)?.value || '').trim();
-  const setVErr = (id, bad) => { const e = document.getElementById(id); if (e) e.classList.toggle('invalid', bad); return bad; };
-  let ok = true;
-  if (setVErr('vf-first', !v('vFirst'))) ok = false;
-  if (setVErr('vf-last', !v('vLast'))) ok = false;
-  if (setVErr('vf-email', !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('vEmail')))) ok = false;
-  if (setVErr('vf-mobile', v('vMobile').replace(/\D/g, '').length < 7)) ok = false;
-  if (!ok) return;
-  const btn = document.getElementById('vSubmit'); const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Booking…';
-  try {
-    const res = await fetch(VIEWING_FN, {
-      method: 'POST',
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        first_name: v('vFirst'), last_name: v('vLast'), email: v('vEmail'), mobile: v('vMobile'), notes: v('vNotes'),
-        property_id: _viewProp.id ? parseInt(_viewProp.id, 10) : null, property_address: _viewProp.address || null,
-        source: _viewProp.id ? 'property' : 'homepage'
-      })
-    });
-    const data = await res.json().catch(() => ({}));
-    if (res.ok && data.ok) {
-      document.getElementById('viewFormWrap').style.display = 'none';
-      document.getElementById('viewConfirm').style.display = 'block';
-      document.getElementById('vcMsg').innerHTML = `Thanks ${esc(v('vFirst'))}! Your viewing is booked for <strong>${esc(data.viewing_label || '')}</strong>${_viewProp.address ? ` at <strong>${esc(_viewProp.address)}</strong>` : ''}. We&#39;ll be in touch to confirm. If you asked for a virtual WhatsApp viewing in your notes, we&#39;ll call you on WhatsApp instead.`;
-      document.getElementById('vSubmit').style.display = 'none';
-      document.getElementById('vClose2').style.display = '';
-    } else { errEl.textContent = data.error || 'Sorry, something went wrong. Please try again.'; errEl.style.display = 'block'; }
-  } catch (e) { errEl.textContent = 'Network error — please try again.'; errEl.style.display = 'block'; console.error(e); }
-  finally { btn.disabled = false; btn.textContent = orig; }
+function closeViewing() {
+  _view.classList.remove('open'); _view.setAttribute('aria-hidden', 'true');
+  // Reset the form for next time by reloading the embedded page.
+  const frame = document.getElementById('viewingFrame');
+  if (frame) frame.src = 'book-viewing.html?embed=1';
 }
 document.addEventListener('click', (e) => {
   const open = e.target.closest('[data-viewing-open]');
-  if (open) { openViewing(open); return; }
+  if (open) { e.preventDefault(); openViewing(); return; }
   if (e.target.closest('[data-viewing-close]') || e.target === _view) { closeViewing(); return; }
-  if (e.target.closest('#vSubmit')) submitViewing();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && _view.classList.contains('open')) closeViewing(); });
-document.getElementById('viewForm').addEventListener('submit', (e) => { e.preventDefault(); submitViewing(); });
 
 /* ---------- lightbox ---------- */
 const lb = document.getElementById('lb');
