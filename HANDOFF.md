@@ -29,10 +29,10 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 |---|---|
 | `index.html` | **Properties** page: hero, trust pills, "How it works" + "What do I get?" modals, property cards (left) + **interactive Google map** (right) |
 | `property.html?id=<buildingId>` | **Rooms** page: property header (address, pills), room cards, location map. Each room has "Book this room →" |
-| `book.html?property=<id>&room=<id>` | **Booking** page: date picker (constrained to availability), price summary, billing form, £100 Stripe deposit |
+| `book.html?property=<id>&room=<id>` | **Booking** page: date picker (constrained to availability), price summary, billing form, £100 Stripe deposit. **With no `room` param** (e.g. the homepage "Reserve a room" button) it shows a **room-picker dropdown** of all live rooms; picking one loads the booking form below. Coming straight from a room skips the dropdown. |
 | `book-success.html?session_id=...` | Post-payment confirmation |
-| `book-viewing.html` | **Standalone multi-property viewing page** (generic URL to send tenants). Lists the currently-live **properties** (not rooms) as checkboxes (default all), books the fixed 6pm slot with the same fields as the modal, **first selected = meeting point**. Has a "copy link to share" control. `noindex` + robots-disallowed (direct-link). |
-| `common.js` | Shared: Supabase config + helpers, lightbox (click-to-zoom), carousel, card builders, footer + Rent Guru logo injection, the 3 modals (How it works / What do I get / Book a Viewing), `PAYMENTS_ENABLED` flag, function URLs (`BOOKING_FN`/`ADDRESS_FN`/`VIEWING_FN`) |
+| `book-viewing.html` | **Standalone multi-property viewing page** (generic URL to send tenants). Lists the currently-live **properties** (not rooms) as checkboxes (default all), books the fixed 6pm slot with the same fields as the modal, **first selected = meeting point**. Has a "copy link to share" control. `noindex` + robots-disallowed (direct-link). **`?embed=1`** hides its own chrome (top bar, footer, share box) — this is the version the "Book a Viewing" modal iframes. |
+| `common.js` | Shared: Supabase config + helpers, lightbox (click-to-zoom), carousel, card builders, footer (incl. "Book a viewing" column + "Copy booking link" button) + Rent Guru logo injection, the modals (How it works / What do I get / **Book a Viewing — now just an iframe of `book-viewing.html?embed=1`**), `PAYMENTS_ENABLED` flag, function URLs (`BOOKING_FN`/`ADDRESS_FN`/`VIEWING_FN`) |
 | `styles.css` | All styles |
 | `rent-guru-logo.png`, `favicon.svg`, `oxford-summer-rooms-logo.svg`, `safari-pinned-tab.svg`, `site.webmanifest` | assets |
 | `supabase/` | OSR edge functions + SQL + this backend's README |
