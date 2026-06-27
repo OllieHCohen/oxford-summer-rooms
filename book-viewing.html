@@ -42,6 +42,7 @@
               <div class="field" id="bf-mobile"><label for="bMobile">Mobile <span class="req">*</span></label><input id="bMobile" type="tel" autocomplete="tel"><div class="field-error">Please enter your mobile number.</div></div>
             </div>
             <div class="field"><label for="bNotes">Notes (optional)</label><textarea id="bNotes" rows="3" placeholder="Any notes — e.g. you'd prefer a virtual WhatsApp viewing instead. We can call you on WhatsApp."></textarea></div>
+            <label class="bv-confirm" id="bf-dates"><input type="checkbox" id="bvDatesOk"><span>I've checked the available dates shown for each property above, and the start and end dates work for me.</span></label>
             <div class="notice notice-amber" id="bvError" style="display:none;margin:8px 0 0"></div>
             <button type="submit" class="btn btn-green btn-lg btn-block" id="bvSubmit" style="margin-top:16px">Book a viewing</button>
           </form>
@@ -104,22 +105,30 @@
 
         const liveRoomIds = [...new Set([].concat(...[...liveRoomsByBuilding.values()].map(rs => rs.map(r => r.property_id))))];
         const detailIds = [...new Set([...liveRoomIds, ...visible.map(b => b.property_id)])];
-        const detail = await sb(`bannits_property_cache?property_id=in.${inList(detailIds)}&select=property_id,rent_per_month,images`);
+        const [detail, availability] = await Promise.all([
+          sb(`bannits_property_cache?property_id=in.${inList(detailIds)}&select=property_id,rent_per_month,images`),
+          liveRoomIds.length ? sb(`room_availability?property_id=in.${inList(liveRoomIds)}&select=property_id,window_start,window_end`) : Promise.resolve([])
+        ]);
         const detailById = new Map(detail.map(d => [d.property_id, d]));
+        const windowsByRoom = new Map();
+        for (const w of availability) {
+          (windowsByRoom.get(w.property_id) || windowsByRoom.set(w.property_id, []).get(w.property_id)).push(w);
+        }
 
         BV_PROPS = visible.sort((a, b) => a.property_id - b.property_id).map(b => {
           const rooms = liveRoomsByBuilding.get(b.property_id) || [];
           const weeks = rooms.map(r => detailById.get(r.property_id)).filter(Boolean).map(d => weeklyRent(d.rent_per_month));
           const bDetail = detailById.get(b.property_id);
           const photos = applyHero(classifyImages(bDetail && bDetail.images).photos, heroById.get(b.property_id));
-          return { id: b.property_id, address: b.property_address || 'Property', thumb: photos[0] ? photos[0].url : '', fromWeek: weeks.length ? Math.min(...weeks) : null };
+          const wins = [].concat(...rooms.map(r => windowsByRoom.get(r.property_id) || []));
+          return { id: b.property_id, address: b.property_address || 'Property', thumb: photos[0] ? photos[0].url : '', fromWeek: weeks.length ? Math.min(...weeks) : null, range: buildingAvailRange(wins) };
         });
 
         wrap.innerHTML = BV_PROPS.map((p, i) => `
           <label class="vp-option">
             <input type="checkbox" class="vp-check" value="${i}" checked>
             ${p.thumb ? `<img class="vp-thumb" src="${esc(p.thumb)}" alt="${esc(p.address)}" loading="lazy">` : '<span class="vp-thumb vp-thumb-empty"></span>'}
-            <span class="vp-info"><span class="vp-addr">${esc(p.address)}</span>${p.fromWeek ? `<span class="vp-price">from ${fmtGBP(p.fromWeek)}/week</span>` : ''}</span>
+            <span class="vp-info"><span class="vp-addr">${esc(p.address)}</span>${p.range ? `<span class="vp-dates">📅 Available ${fmtDate(p.range.start)} – ${fmtDate(p.range.end)}</span>` : `<span class="vp-dates vp-dates-none">Dates on request</span>`}${p.fromWeek ? `<span class="vp-price">from ${fmtGBP(p.fromWeek)}/week</span>` : ''}</span>
           </label>`).join('');
         updateMeet();
       } catch (e) {
@@ -140,6 +149,9 @@
       if (setErr('bf-last', !v('bLast'))) ok = false;
       if (setErr('bf-email', !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('bEmail')))) ok = false;
       if (setErr('bf-mobile', v('bMobile').replace(/\D/g, '').length < 7)) ok = false;
+      const datesOk = document.getElementById('bvDatesOk').checked;
+      setErr('bf-dates', !datesOk);
+      if (!datesOk) { ok = false; if (err.style.display !== 'block') { err.textContent = 'Please confirm the available dates work for you before booking.'; err.style.display = 'block'; } }
       if (!ok) return;
 
       const btn = document.getElementById('bvSubmit'); const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Booking…';

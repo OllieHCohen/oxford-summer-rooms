@@ -146,18 +146,31 @@
         const detailIds = [...new Set([...liveRoomIds, ...visible.map(b => b.property_id)])];
         const buildingIds = visible.map(b => b.property_id);
 
-        const [detail, buildingMeta, syncLog] = await Promise.all([
+        const [detail, buildingMeta, availability, syncLog] = await Promise.all([
           sb(`bannits_property_cache?property_id=in.${inList(detailIds)}&select=property_id,property_name,rent_per_month,number_of_beds,number_of_bathrooms,images`),
           sb(`bannits_property_cache?property_id=in.${inList(buildingIds)}&select=property_id,short_description,sd:payload->>shortDescription,lat:payload->>latitude,lng:payload->>longitude`),
+          liveRoomIds.length ? sb(`room_availability?property_id=in.${inList(liveRoomIds)}&select=property_id,window_start,window_end`) : Promise.resolve([]),
           sb('summer_voids_sync_log?select=finished_at&order=finished_at.desc&limit=1').catch(() => [])
         ]);
 
         const detailById = new Map(detail.map(d => [d.property_id, d]));
         const metaById = new Map(buildingMeta.map(m => [m.property_id, m]));
+
+        // Building availability range derived from its rooms (earliest start → latest end).
+        const windowsByRoom = new Map();
+        for (const w of availability) {
+          (windowsByRoom.get(w.property_id) || windowsByRoom.set(w.property_id, []).get(w.property_id)).push(w);
+        }
+        const rangeByBuilding = new Map();
+        for (const b of visible) {
+          const wins = [].concat(...(liveRoomsByBuilding.get(b.property_id) || []).map(r => windowsByRoom.get(r.property_id) || []));
+          rangeByBuilding.set(b.property_id, buildingAvailRange(wins));
+        }
+
         const sorted = visible.sort((a, b) => a.property_id - b.property_id);
 
         document.getElementById('list').innerHTML = sorted
-          .map(b => propertyCardCompact(b, liveRoomsByBuilding.get(b.property_id) || [], detailById, metaById, heroById))
+          .map(b => propertyCardCompact(b, liveRoomsByBuilding.get(b.property_id) || [], detailById, metaById, heroById, rangeByBuilding.get(b.property_id)))
           .join('');
 
         const points = sorted.map(b => {

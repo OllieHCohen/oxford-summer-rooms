@@ -84,6 +84,17 @@ function bookableWindows(windows) {
     .sort((a, b) => a.window_start.localeCompare(b.window_start));
 }
 
+/* A property's overall availability = earliest bookable room start → latest room end.
+   Rooms are the source of truth, so the building range is derived from them.
+   `windows` is the combined room_availability rows for all of the building's live rooms. */
+function buildingAvailRange(windows) {
+  const b = bookableWindows(windows);
+  if (!b.length) return null;
+  let start = b[0].window_start, end = b[0].window_end;
+  for (const w of b) { if (w.window_start < start) start = w.window_start; if (w.window_end > end) end = w.window_end; }
+  return { start, end };
+}
+
 /* ---------- icons ---------- */
 const ICON_PLAN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h6V3M21 14h-6v7M9 14H3M15 3v6h6"/></svg>';
 const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
@@ -391,9 +402,9 @@ function pillsHtml(meta) {
     .map(label => `<span class="bills-badge">${label}</span>`).join('');
 }
 
-function gapLabel(building) {
-  return (building.preceding_agreement_end && building.start_date)
-    ? `Summer gap: ${fmtDate(building.preceding_agreement_end)} – ${fmtDate(building.start_date)}` : '';
+/* Badge label from a room-derived availability range (see buildingAvailRange). */
+function gapLabel(range) {
+  return range ? `Available: ${fmtDate(range.start)} – ${fmtDate(range.end)}` : '';
 }
 
 /* Building photo gallery: thumbnail grid (count badge on the first thumb) plus
@@ -437,7 +448,7 @@ function locationSection(lat, lng, address) {
 }
 
 /* Property summary card for the listings page (no rooms inline) */
-function propertyCard(building, liveRooms, detailById, metaById, heroById) {
+function propertyCard(building, liveRooms, detailById, metaById, heroById, range) {
   const bDetail = detailById.get(building.property_id);
   const bMeta = metaById.get(building.property_id) || {};
   const cls = classifyImages(bDetail && bDetail.images);
@@ -454,7 +465,7 @@ function propertyCard(building, liveRooms, detailById, metaById, heroById) {
 
   return `
     <section class="building">
-      ${carousel(photos, [], [], gapLabel(building))}
+      ${carousel(photos, [], [], gapLabel(range))}
       <div class="building-body">
         <h3>${esc(building.property_address || (bDetail && bDetail.property_name) || 'Property')}</h3>
         ${shortDesc ? `<p class="short-desc">${esc(shortDesc)}</p>` : ''}
@@ -467,7 +478,7 @@ function propertyCard(building, liveRooms, detailById, metaById, heroById) {
 
 /* Compact property card for the split (list + map) listings layout.
    Image-forward and narrow; details live on the property page. */
-function propertyCardCompact(building, liveRooms, detailById, metaById, heroById) {
+function propertyCardCompact(building, liveRooms, detailById, metaById, heroById, range) {
   const id = building.property_id;
   const bDetail = detailById.get(id);
   const cls = classifyImages(bDetail && bDetail.images);
@@ -488,7 +499,7 @@ function propertyCardCompact(building, liveRooms, detailById, metaById, heroById
   const address = building.property_address || (bDetail && bDetail.property_name) || 'Property';
   return `
     <section class="pcard" id="pcard-${id}" data-pid="${id}">
-      ${carousel(photos, floorplans, videos, gapLabel(building))}
+      ${carousel(photos, floorplans, videos, gapLabel(range))}
       <div class="pcard-body">
         <a class="pcard-title" href="property.html?id=${id}">${esc(address)}</a>
         <div class="pcard-meta">${esc(building.city || 'Oxford')} · ${roomCount} room${roomCount === 1 ? '' : 's'} available</div>
