@@ -79,8 +79,8 @@
       if (!sel.length) { el.className = 'bv-meet bv-meet-warn'; el.textContent = 'Please choose at least one property to view.'; return; }
       el.className = 'bv-meet';
       el.innerHTML = sel.length > 1
-        ? `You've selected ${sel.length} properties. We'll meet you at the first — <strong>${esc(sel[0].address)}</strong> — at 6:00pm and see the others from there.`
-        : `We'll meet you at <strong>${esc(sel[0].address)}</strong> at 6:00pm.`;
+        ? `You've selected ${sel.length} properties. We'll meet you at the first — <strong>${esc(sel[0].address)}</strong> — at 4:00pm and see the others from there.`
+        : `We'll meet you at <strong>${esc(sel[0].address)}</strong> at 4:00pm.`;
     }
 
     async function loadProps() {

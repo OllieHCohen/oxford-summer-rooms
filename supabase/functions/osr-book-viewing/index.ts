@@ -1,14 +1,14 @@
 // ============================================================
 // osr-book-viewing — Oxford Summer Rooms (namespaced, OSR-only)
 //
-// Records a viewing request in osr_viewings, computes the next 6pm viewing slot
-// (Mon-Fri, UK time; today if before 5pm on a weekday, else next weekday), sends a
+// Records a viewing request in osr_viewings, computes the next 4pm viewing slot
+// (Mon-Fri, UK time; today if before 3pm on a weekday, else next weekday), sends a
 // Telegram + email alert to mail@therent.guru, and emails a confirmation to the
 // guest (cc + reply-to mail@therent.guru) from the verified email.therent.guru domain.
 //
 // Accepts either a single property (legacy modal: property_id/property_address) or a
 // multi-select list (book-viewing.html: properties: [{id, address}]). When several are
-// chosen the first is the meeting point ("meet at the first property at 6pm").
+// chosen the first is the meeting point ("meet at the first property at 4pm").
 //
 // Deploy:  supabase functions deploy osr-book-viewing --project-ref rmoqgbrttdbgxntbxaxr --no-verify-jwt
 // Secrets used: SUPABASE_URL/SERVICE_ROLE_KEY (auto); TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID,
@@ -29,23 +29,23 @@ const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-// Next viewing: 6pm, Mon-Fri, UK time. Today if weekday & before 5pm, else next weekday.
+// Next viewing: 4pm, Mon-Fri, UK time. Today if weekday & before 3pm, else next weekday.
 function nextViewing() {
   const f = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hour12: false });
   const p = Object.fromEntries(f.formatToParts(new Date()).map((x) => [x.type, x.value])) as Record<string, string>;
   const y = +p.year, m = +p.month, d = +p.day, hour = +p.hour;
   let dt = new Date(Date.UTC(y, m - 1, d));
   const weekday = (x: Date) => { const w = x.getUTCDay(); return w >= 1 && w <= 5; };
-  if (!(weekday(dt) && hour < 17)) { do { dt.setUTCDate(dt.getUTCDate() + 1); } while (!weekday(dt)); }
+  if (!(weekday(dt) && hour < 15)) { do { dt.setUTCDate(dt.getUTCDate() + 1); } while (!weekday(dt)); }
   const date = dt.toISOString().slice(0, 10);
-  const label = `${DAYS[dt.getUTCDay()]} ${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]} ${dt.getUTCFullYear()} at 6:00pm`;
+  const label = `${DAYS[dt.getUTCDay()]} ${dt.getUTCDate()} ${MONTHS[dt.getUTCMonth()]} ${dt.getUTCFullYear()} at 4:00pm`;
   return { date, label };
 }
 
 async function notify(row: any, view: { addresses: string[]; multi: boolean; meetAddress: string | null }) {
   const name = `${row.first_name} ${row.last_name}`.trim();
   const tgPropsBlock = view.multi
-    ? `Properties to view:\n${view.addresses.map((a) => `• ${a}`).join("\n")}\nMeet at the first property: ${view.meetAddress} at 6:00pm`
+    ? `Properties to view:\n${view.addresses.map((a) => `• ${a}`).join("\n")}\nMeet at the first property: ${view.meetAddress} at 4:00pm`
     : `Property: ${view.meetAddress ?? "—"}`;
   const tgToken = Deno.env.get("TELEGRAM_BOT_TOKEN"), tgChat = Deno.env.get("TELEGRAM_CHAT_ID");
   if (tgToken && tgChat) {
@@ -71,7 +71,7 @@ ${row.notes ? `Notes: ${row.notes}` : "Notes: —"}`;
   <h2 style="color:#15803d;margin:0 0 12px">New viewing request — Oxford Summer Rooms</h2>
   <table style="border-collapse:collapse;font-size:14px;width:100%">
     ${view.multi
-      ? row2("Properties", view.addresses.join("<br>")) + row2("Meet at", `${view.meetAddress} at 6:00pm (first property)`)
+      ? row2("Properties", view.addresses.join("<br>")) + row2("Meet at", `${view.meetAddress} at 4:00pm (first property)`)
       : row2("Property", view.meetAddress ?? "—")}
     ${row2("Viewing", row.viewing_label)}
     ${row2("Name", name)}
@@ -95,7 +95,7 @@ ${row.notes ? `Notes: ${row.notes}` : "Notes: —"}`;
       ? `<tr><td style="padding:0 16px 14px;color:#6b7280;font-size:14px;vertical-align:top">Meeting point</td><td style="padding:0 16px 14px 0;font-size:15px;font-weight:700">${esc(view.meetAddress)}</td></tr>`
       : "";
     const meetLine = view.multi && view.meetAddress
-      ? `<p style="margin:0 0 16px">You've asked to view ${view.addresses.length} properties — please meet us at the first one, <strong>${esc(view.meetAddress)}</strong>, at 6:00pm and we'll take you round the others from there.</p>`
+      ? `<p style="margin:0 0 16px">You've asked to view ${view.addresses.length} properties — please meet us at the first one, <strong>${esc(view.meetAddress)}</strong>, at 4:00pm and we'll take you round the others from there.</p>`
       : "";
     const guestHtml =
 `<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:auto;color:#1d2330;font-size:15px;line-height:1.6">
@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
     property_id: selected[0]?.id ?? null,
     property_address: addresses.length ? addresses.join(" • ") : null,
     viewing_date: slot.date,
-    viewing_time: "18:00",
+    viewing_time: "16:00",
     viewing_label: slot.label,
     first_name: first, last_name: last, email, mobile,
     notes: (body.notes || "").trim() || null,

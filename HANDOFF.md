@@ -31,7 +31,7 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 | `property.html?id=<buildingId>` | **Rooms** page: property header (address, pills), room cards, location map. Each room has "Book this room →" |
 | `book.html?property=<id>&room=<id>` | **Booking** page: date picker (constrained to availability), price summary, billing form, £100 Stripe deposit. **With no `room` param** (e.g. the homepage "Reserve a room" button) it shows a **room-picker dropdown** of all live rooms; picking one loads the booking form below. Coming straight from a room skips the dropdown. |
 | `book-success.html?session_id=...` | Post-payment confirmation |
-| `book-viewing.html` | **Standalone multi-property viewing page** (generic URL to send tenants). Lists the currently-live **properties** (not rooms) as checkboxes (default all), books the fixed 6pm slot with the same fields as the modal, **first selected = meeting point**. Each property shows its **room-derived available date range** and the guest must tick "the dates work for me" before booking. Has a "copy link to share" control. `noindex` + robots-disallowed (direct-link). **`?embed=1`** hides its own chrome (top bar, footer, share box) — this is the version the "Book a Viewing" modal iframes. |
+| `book-viewing.html` | **Standalone multi-property viewing page** (generic URL to send tenants). Lists the currently-live **properties** (not rooms) as checkboxes (default all), books the fixed 4pm slot with the same fields as the modal, **first selected = meeting point**. Each property shows its **room-derived available date range** and the guest must tick "the dates work for me" before booking. Has a "copy link to share" control. `noindex` + robots-disallowed (direct-link). **`?embed=1`** hides its own chrome (top bar, footer, share box) — this is the version the "Book a Viewing" modal iframes. |
 | `common.js` | Shared: Supabase config + helpers, lightbox (click-to-zoom), carousel, card builders, footer (incl. "Book a viewing" column + "Copy booking link" button) + Rent Guru logo injection, the modals (How it works / What do I get / **Book a Viewing — now just an iframe of `book-viewing.html?embed=1`**), `PAYMENTS_ENABLED` flag, function URLs (`BOOKING_FN`/`ADDRESS_FN`/`VIEWING_FN`) |
 | `styles.css` | All styles |
 | `rent-guru-logo.png`, `favicon.svg`, `oxford-summer-rooms-logo.svg`, `safari-pinned-tab.svg`, `site.webmanifest` | assets |
@@ -76,12 +76,12 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 - **Function `osr-address-lookup`** — Postcoder UK + international address-lookup proxy (key
   server-side). Called by the booking billing-address "Find your address". `?q=<postcode>&country=<UK|FR|US|…>`.
 - **Function `osr-book-viewing`** — saves a viewing request to `osr_viewings`, computes the next
-  6pm slot (Mon–Fri, UK time; today if weekday & before 5pm, else next weekday), alerts
+  4pm slot (Mon–Fri, UK time; today if weekday & before 3pm, else next weekday), alerts
   mail@therent.guru by Telegram + email, and emails a branded confirmation to the guest
   (from bookings@email.therent.guru, cc + reply-to mail@therent.guru). Accepts either a single
   property (modal: `property_id`/`property_address`) or a multi-select list (book-viewing.html:
   `properties:[{id,address}]`); when several are chosen the **first is the meeting point**, and all
-  three notifications list every selected property + "meet at the first at 6pm". `source` values:
+  three notifications list every selected property + "meet at the first at 4pm". `source` values:
   `homepage` | `property` | `viewings-page`.
 - **Table `osr_viewings`** — viewing requests (RLS on, no public policies). SQL in `supabase/osr_viewings.sql`.
 - Deploy any of them with:
@@ -143,7 +143,7 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
   (leading 0 is fine; the country code is preselected).
 - **"Book a Viewing"** — big green button above the homepage property grid and on each rooms page.
   Opens a reusable modal (`[data-viewing-open]`, set `data-vprop-id`/`data-vprop-addr` on the
-  trigger) showing the next 6pm slot + name/email/mobile/notes (notes mentions a virtual WhatsApp
+  trigger) showing the next 4pm slot + name/email/mobile/notes (notes mentions a virtual WhatsApp
   viewing). Saves to `osr_viewings`, alerts mail@therent.guru. Homepage default property = 13 James St (207).
 - Modals: **"✨ How it works"**, **"🎁 What do I get?"**, **"📅 Book a Viewing"** — reusable via
   `[data-hiw-open]` / `[data-wdig-open]` / `[data-viewing-open]`.
