@@ -115,12 +115,12 @@ ${row.notes ? `Notes: ${row.notes}` : "Notes: —"}`;
     </table>
     ${meetLine}
     <p style="margin:0 0 16px">We'll be in touch shortly to confirm. If you'd prefer a virtual viewing over WhatsApp, just reply and let us know — we'll call you instead.</p>
-    <p style="margin:0 0 22px">Need to change your viewing or have a question? Just reply to this email, or message us on WhatsApp at <a href="https://wa.me/447735939676" style="color:#15803d;font-weight:600;text-decoration:none">07735&nbsp;939676</a>.</p>
+    <p style="margin:0 0 22px">Need to change your viewing or have a question? Just reply to this email, or message us on WhatsApp at <a href="https://wa.me/447378210071" style="color:#15803d;font-weight:600;text-decoration:none">07378&nbsp;210071</a>.</p>
     <p style="margin:0 0 4px">See you soon,</p>
     <p style="margin:0 0 24px;font-weight:600">The Oxford Summer Rooms team</p>
     <div style="border-top:1px solid #e5e7eb;padding-top:16px;font-size:12px;color:#6b7280;line-height:1.6">
       Oxford Summer Rooms — operated by Bannits Ltd t/a The Rent Guru<br>
-      WhatsApp / phone: 07735 939676 &nbsp;·&nbsp; <a href="https://www.oxfordsummerrooms.com" style="color:#6b7280">www.oxfordsummerrooms.com</a>
+      WhatsApp / phone: 07378 210071 &nbsp;·&nbsp; <a href="https://www.oxfordsummerrooms.com" style="color:#6b7280">www.oxfordsummerrooms.com</a>
     </div>
   </div>
 </div>`;
