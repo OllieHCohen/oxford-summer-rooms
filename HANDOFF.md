@@ -147,7 +147,7 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
   viewing). Saves to `osr_viewings`, alerts mail@therent.guru. Homepage default property = 13 James St (207).
 - Modals: **"✨ How it works"**, **"🎁 What do I get?"**, **"📅 Book a Viewing"** — reusable via
   `[data-hiw-open]` / `[data-wdig-open]` / `[data-viewing-open]`.
-- **Contact:** phone/WhatsApp = **07378 210071** (`wa.me/447378210071`). Green WhatsApp button at the
+- **Contact:** phone/WhatsApp = **07735 939676** (`wa.me/447735939676`). Green WhatsApp button at the
   top of the homepage hero; phone + WhatsApp in the footer (The Rent Guru company block).
   Rent Guru logo top-right (links to homepage), hidden on the rooms page.
 - **Analytics:** Statcounter (project `13299718`, invisible) on all 4 pages, just before `</body>`.
