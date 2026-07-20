@@ -395,10 +395,15 @@ function wireCarousels() {
   });
 }
 
-/* Green pills: bills + free wifi + any USPs from a building meta row */
+/* Green pills: bills + any USPs from a building meta row.
+   Wifi is NOT supplied any more — the hardcoded pill is gone and any
+   wifi/internet USP coming from the backend data is filtered out. */
 function pillsHtml(meta) {
-  const usps = [meta && meta.usp1, meta && meta.usp2, meta && meta.usp3].map(u => (u || '').trim()).filter(Boolean);
-  return ['Gas, electricity &amp; water included', 'Free Wifi', ...usps.map(esc)]
+  const usps = [meta && meta.usp1, meta && meta.usp2, meta && meta.usp3]
+    .map(u => (u || '').trim())
+    .filter(Boolean)
+    .filter(u => !/wi-?fi|internet|broadband/i.test(u));
+  return ['Gas, electricity &amp; water included', ...usps.map(esc)]
     .map(label => `<span class="bills-badge">${label}</span>`).join('');
 }
 

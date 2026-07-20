@@ -132,7 +132,7 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 
 ## 6. Current state of the site (features built)
 - Properties listing (left cards / right map), responsive.
-- Property/rooms page: address + meta + green pills (bills, Free Wifi, USPs), room cards, location map.
+- Property/rooms page: address + meta + green pills (bills + USPs; wifi is NOT supplied — the pill was removed and wifi/internet USPs from the backend are filtered out), room cards, location map.
   Room cards show ONE main photo (intentionally — backend sometimes has wrong photo counts);
   the photo is **clickable → opens large in lightbox with click-to-zoom (2.5×) + pan**.
 - Booking page with availability-constrained dates, live price summary, billing address, Stripe.
