@@ -507,7 +507,7 @@ function propertyCardCompact(building, liveRooms, detailById, metaById, heroById
       ${carousel(photos, floorplans, videos, gapLabel(range))}
       <div class="pcard-body">
         <a class="pcard-title" href="property.html?id=${id}">${esc(address)}</a>
-        <div class="pcard-meta">${esc(building.city || 'Oxford')} · ${roomCount} room${roomCount === 1 ? '' : 's'} available</div>
+        <div class="pcard-meta">${esc(building.city || 'Oxford')} · ${roomCount} room${roomCount === 1 ? '' : 's'} available · ID ${id}</div>
         ${fromWeek ? `<div class="pcard-price">from <strong>${fmtGBP(fromWeek)}</strong> <span>/ week</span></div>` : ''}
         <div class="pcard-note">Bills included · Min stay 2 weeks</div>
         <a class="btn btn-block" href="property.html?id=${id}" style="margin-top:12px">See the rooms →</a>
@@ -528,6 +528,7 @@ function roomCard(room, detail, windows, heroOverride, bookHref) {
   const specs = [];
   if (beds != null) specs.push(beds + (beds === 1 ? ' bed' : ' beds'));
   if (baths != null) specs.push(baths + (baths === 1 ? ' bath' : ' baths'));
+  specs.push(`ID ${room.property_id}`); // small reference for staff/enquiries
 
   const bookable = bookableWindows(windows);
   const datesHtml = bookable.length

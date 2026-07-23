@@ -69,7 +69,8 @@
         const metaBits = [
           building.city || 'Oxford',
           `${liveRooms.length} room${liveRooms.length === 1 ? '' : 's'} available`,
-          fromWeek ? `from ${fmtGBP(fromWeek)}/week` : ''
+          fromWeek ? `from ${fmtGBP(fromWeek)}/week` : '',
+          `ID ${id}`
         ].filter(Boolean);
 
         const roomsHtml = liveRooms
