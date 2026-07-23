@@ -102,6 +102,10 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 - Flow: book.html submit → POST to `osr-create-booking` → returns Stripe Checkout URL →
   browser redirects → guest pays £100 → Stripe redirects to `book-success.html` →
   `osr-stripe-webhook` marks the `osr_bookings` row `reserved`.
+- Checkout sessions **expire after ~30 min** (Stripe minimum; was the 24h default). An unpaid
+  checkout creates a `pending_payment` row that blocks the room's dates until the session
+  expires and the webhook marks it `cancelled` — so abandoned checkouts now self-release in
+  ~30 min. (A stuck room can be freed instantly by expiring its open session in Stripe.)
 - **Stripe is LIVE (not test mode)** — it's Oliver's long-standing Rent Guru account.
   Test = a real £100 charge you then **refund** in Stripe (Payments → Refund). No test cards.
 - **Stripe webhook endpoint** (Stripe dashboard, Live mode) points at

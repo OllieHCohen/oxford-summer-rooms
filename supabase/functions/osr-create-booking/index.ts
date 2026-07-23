@@ -92,6 +92,11 @@ Deno.serve(async (req) => {
   try {
     session = await stripe.checkout.sessions.create({
       mode: "payment",
+      // Unpaid sessions previously blocked the room for Stripe's default
+      // 24h; expire after ~30 min instead (Stripe's minimum — set to 31
+      // to avoid clock-skew rejections) so abandoned checkouts release
+      // the room quickly via the existing expired-webhook path.
+      expires_at: Math.floor(Date.now() / 1000) + 31 * 60,
       customer_email: g.email,
       line_items: [{
         quantity: 1,
