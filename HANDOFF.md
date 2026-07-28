@@ -154,7 +154,11 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 - **Contact:** phone/WhatsApp = **07735 939676** (`wa.me/447735939676`). Green WhatsApp button at the
   top of the homepage hero; phone + WhatsApp in the footer (The Rent Guru company block).
   Rent Guru logo top-right (links to homepage), hidden on the rooms page.
-- **Analytics:** Statcounter (project `13299718`, invisible) on all 4 pages, just before `</body>`.
+- **Analytics:** Statcounter (project `13299718`, invisible) on all pages, just before `</body>`.
+- **Google Ads:** gtag `AW-966624333` in the `<head>` of all 5 pages. A **conversion event**
+  (label `Nw91CJvw9dccEM2I9swD`, value 100 GBP) fires **only on `book-success.html`** when a
+  `session_id` is present (Stripe redirects there only after successful payment);
+  `transaction_id` = the Stripe session id, so refreshes don't double-count.
 - **Security headers:** `vercel.json` adds HSTS + X-Content-Type-Options + Referrer-Policy +
   X-Frame-Options + Permissions-Policy. Cert is Let's Encrypt via Vercel (auto-renewed).
 - Properties live = whatever is `is_live` in `property_live_status` (toggle there, no code change).
