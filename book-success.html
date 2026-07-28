@@ -9,6 +9,14 @@
   <link href="https://fonts.googleapis.com/css?family=Quicksand:400,500,600,700" rel="stylesheet" />
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="stylesheet" href="styles.css" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-966624333"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'AW-966624333');
+  </script>
 </head>
 
 <body>
@@ -24,7 +32,20 @@
   <script src="common.js"></script>
   <script>
     const sid = param('session_id');
-    if (sid) document.getElementById('ref').textContent = 'Reference: ' + sid;
+    if (sid) {
+      document.getElementById('ref').textContent = 'Reference: ' + sid;
+      // Google Ads conversion — fired only here, and only with a session_id
+      // (Stripe Checkout redirects to this page solely after a successful
+      // payment, so reaching it with a session_id means payment confirmed).
+      // transaction_id = the Stripe session id, so a refresh of this page
+      // can't double-count the same booking.
+      gtag('event', 'conversion', {
+        'send_to': 'AW-966624333/Nw91CJvw9dccEM2I9swD',
+        'value': HOLDING_DEPOSIT, // the amount actually paid (£100 deposit)
+        'currency': 'GBP',
+        'transaction_id': sid
+      });
+    }
   </script>
   <!-- Default Statcounter code for Oxford Summer rooms http://www.oxfordsummerrooms.com -->
   <script type="text/javascript">
