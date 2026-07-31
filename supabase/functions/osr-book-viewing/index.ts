@@ -47,7 +47,10 @@ async function notify(row: any, view: { addresses: string[]; multi: boolean; mee
   const tgPropsBlock = view.multi
     ? `Properties to view:\n${view.addresses.map((a) => `• ${a}`).join("\n")}\nMeet at the first property: ${view.meetAddress} at 4:00pm`
     : `Property: ${view.meetAddress ?? "—"}`;
-  const tgToken = Deno.env.get("TELEGRAM_BOT_TOKEN"), tgChat = Deno.env.get("TELEGRAM_CHAT_ID");
+  // OSR-specific Telegram destination (dedicated OSR channel) with fallback
+  // to the shared project-wide secrets (also used by Rent Guru production).
+  const tgToken = Deno.env.get("OSR_TELEGRAM_BOT_TOKEN") ?? Deno.env.get("TELEGRAM_BOT_TOKEN"),
+    tgChat = Deno.env.get("OSR_TELEGRAM_CHAT_ID") ?? Deno.env.get("TELEGRAM_CHAT_ID");
   if (tgToken && tgChat) {
     const text =
 `📅 NEW VIEWING REQUEST — Oxford Summer Rooms

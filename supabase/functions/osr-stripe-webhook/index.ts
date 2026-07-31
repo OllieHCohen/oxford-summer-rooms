@@ -37,8 +37,11 @@ async function notify(b: any, session: Stripe.Checkout.Session) {
   const fullName = `${b.guest_first_name ?? ""} ${b.guest_last_name ?? ""}`.trim();
   const addr = [b.addr_line1, b.addr_line2, b.addr_city, b.addr_postcode, b.addr_country].filter(Boolean).join(", ");
 
-  const tgToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
-  const tgChat = Deno.env.get("TELEGRAM_CHAT_ID");
+  // OSR-specific Telegram destination (dedicated OSR channel) with fallback
+  // to the shared project-wide secrets. Never change the shared TELEGRAM_*
+  // secrets for OSR — Rent Guru production functions read them too.
+  const tgToken = Deno.env.get("OSR_TELEGRAM_BOT_TOKEN") ?? Deno.env.get("TELEGRAM_BOT_TOKEN");
+  const tgChat = Deno.env.get("OSR_TELEGRAM_CHAT_ID") ?? Deno.env.get("TELEGRAM_CHAT_ID");
   if (tgToken && tgChat) {
     const text =
 `🏠 NEW BOOKING — Oxford Summer Rooms
