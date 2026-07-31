@@ -95,6 +95,13 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 - `POSTCODER_API_KEY` = Postcoder address-lookup key (used by `osr-address-lookup`).
   Postcoder phone/autocomplete products are NOT enabled on this key.
 - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `RESEND_API_KEY` (pre-existing, reused)
+- `OSR_TELEGRAM_BOT_TOKEN`, `OSR_TELEGRAM_CHAT_ID` — **dedicated OSR alerts** (since 31 Jul 2026):
+  bot `@oxford_summer_rooms_bot` posting to the "Oxford Summer Rroms Notifictions and Chat"
+  group (`-5233107907`). Both OSR functions prefer these and fall back to the shared
+  `TELEGRAM_*` secrets — never repoint the shared ones (Rent Guru production uses them).
+  ⚠️ It's a basic group: if Telegram ever upgrades it to a supergroup, the chat id changes
+  and `OSR_TELEGRAM_CHAT_ID` must be updated. Past alerts were backfilled into the group
+  on 31 Jul 2026 (90 reconstructed messages).
 - `BOOKINGS_FROM_EMAIL` (optional; defaults to `bookings@email.therent.guru`)
 
 ## 4. Booking & payments (LIVE)
