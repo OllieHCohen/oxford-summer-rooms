@@ -39,6 +39,17 @@
     const setErr = (wrapId, on) => { const el = document.getElementById(wrapId); if (el) el.classList.toggle('invalid', !!on); return !!on; };
     let phoneIti = null;
 
+    // Earliest allowed check-in: we need one working day (Mon-Fri, UK) to
+    // process paperwork, counting today — so weekend bookings start Monday
+    // at the earliest. (The server enforces the same rule.)
+    function earliestCheckin() {
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date());
+      const wd = new Date(today + 'T00:00:00Z').getUTCDay();
+      if (wd === 6) return addDays(today, 2); // Saturday → Monday
+      if (wd === 0) return addDays(today, 1); // Sunday → Monday
+      return today;
+    }
+
     async function load() {
       const propertyId = parseInt(param('property'), 10);
       const roomId = parseInt(param('room'), 10);
@@ -145,7 +156,7 @@
         `<option value="${i}">${fmtDate(w.window_start)} – ${fmtDate(w.window_end)} (up to ${nightsBetween(w.window_start, w.window_end)} nights)</option>`).join('');
       const availHtml = windows.length ? `<div class="avail-note">📅 <strong>Available to book:</strong><br>${windows.map(w =>
         `${fmtDate(w.window_start)} &ndash; ${fmtDate(w.window_end)} <span class="an-nights">(up to ${nightsBetween(w.window_start, w.window_end)} nights)</span>`).join('<br>')}
-        <div class="an-min">Minimum stay 2 weeks. Pick a check-in and check-out within ${windows.length > 1 ? 'one of these periods' : 'this period'}.</div></div>` : '';
+        <div class="an-min">Minimum stay 2 weeks. Pick a check-in and check-out within ${windows.length > 1 ? 'one of these periods' : 'this period'}.${earliestCheckin() !== new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(new Date()) ? ' As it&rsquo;s the weekend, the earliest check-in is <strong>Monday</strong> &mdash; we need one working day to prepare your paperwork.' : ''}</div></div>` : '';
 
       target.innerHTML = `
         <div class="summary-card">
@@ -228,7 +239,8 @@
 
       function applyWindowBounds() {
         const w = currentWindow();
-        checkin.min = w.window_start; checkin.max = addDays(w.window_end, -MIN_NIGHTS);
+        const minCi = earliestCheckin() > w.window_start ? earliestCheckin() : w.window_start;
+        checkin.min = minCi; checkin.max = addDays(w.window_end, -MIN_NIGHTS);
         checkout.min = addDays(w.window_start, MIN_NIGHTS); checkout.max = w.window_end;
         if (checkin.value && (checkin.value < checkin.min || checkin.value > checkin.max)) checkin.value = '';
         if (checkout.value && (checkout.value < checkout.min || checkout.value > checkout.max)) checkout.value = '';
@@ -383,7 +395,8 @@
       const checkout = document.getElementById('checkout');
       const sel = document.getElementById('window');
       const w = ctx.windows[sel ? parseInt(sel.value, 10) : 0];
-      const ciBad = !checkin.value || checkin.value < w.window_start || checkin.value > addDays(w.window_end, -MIN_NIGHTS);
+      const minCi = earliestCheckin() > w.window_start ? earliestCheckin() : w.window_start;
+      const ciBad = !checkin.value || checkin.value < minCi || checkin.value > addDays(w.window_end, -MIN_NIGHTS);
       const coBad = !checkout.value || checkout.value > w.window_end || !checkin.value || nightsBetween(checkin.value, checkout.value) < MIN_NIGHTS;
       if (setErr('f-checkin', ciBad)) ok = false;
       if (setErr('f-checkout', coBad)) ok = false;

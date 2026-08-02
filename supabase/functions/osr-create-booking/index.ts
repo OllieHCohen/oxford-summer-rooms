@@ -62,6 +62,21 @@ Deno.serve(async (req) => {
   const n = nights(check_in, check_out);
   if (!(n >= MIN_NIGHTS)) return json({ error: `Minimum stay is ${MIN_NIGHTS} nights.` }, 400);
 
+  // We need one working day (Mon-Fri, UK) to process the paperwork, counting
+  // the booking day itself: weekday check-ins are fine, Friday bookings may
+  // start on the weekend, but a booking made on Sat/Sun can't start until
+  // Monday. Rule: at least one working day in [today, check_in] inclusive.
+  const todayLondon = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(new Date());
+  if (check_in < todayLondon) return json({ error: "The check-in date has already passed. Please choose a later date." }, 400);
+  let hasWorkingDay = false;
+  for (const d = new Date(`${todayLondon}T00:00:00Z`); d.toISOString().slice(0, 10) <= check_in; d.setUTCDate(d.getUTCDate() + 1)) {
+    const wd = d.getUTCDay();
+    if (wd >= 1 && wd <= 5) { hasWorkingDay = true; break; }
+  }
+  if (!hasWorkingDay) {
+    return json({ error: "We need one working day to prepare your paperwork, so bookings made at the weekend can check in from Monday onwards. Please choose a later check-in date." }, 400);
+  }
+
   // --- server-side re-validation against live data (read-only on shared tables) ---
   const [liveRes, memberRes, windowsRes, roomRes] = await Promise.all([
     supabase.from("property_live_status").select("property_id").eq("property_id", room_id).eq("is_live", true).maybeSingle(),

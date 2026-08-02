@@ -109,6 +109,11 @@ holding page. All property data is **read** from a Supabase backend; bookings ar
 - Flow: book.html submit → POST to `osr-create-booking` → returns Stripe Checkout URL →
   browser redirects → guest pays £100 → Stripe redirects to `book-success.html` →
   `osr-stripe-webhook` marks the `osr_bookings` row `reserved`.
+- **One-working-day lead time** (since 2 Aug 2026): check-in requires at least one working day
+  (Mon–Fri, UK) between booking and check-in, counting both days — weekday check-ins are
+  unrestricted, Friday bookings may start on the weekend, but Sat/Sun bookings can't check in
+  before Monday (the office can't process paperwork at weekends). Enforced in the book.html
+  date picker (min + hint) AND server-side in `osr-create-booking`.
 - Checkout sessions **expire after ~30 min** (Stripe minimum; was the 24h default). An unpaid
   checkout creates a `pending_payment` row that blocks the room's dates until the session
   expires and the webhook marks it `cancelled` — so abandoned checkouts now self-release in
