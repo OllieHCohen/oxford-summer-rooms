@@ -226,6 +226,9 @@ a { color: var(--navy); }
 .vp-dates { color: #15803d; font-size: 12.5px; font-weight: 600; }
 .vp-dates-none { color: var(--muted); font-weight: 500; }
 .vp-price { color: #6b7280; font-size: 13px; }
+/* Honeypot — parked off-screen so humans never see or tab into it. */
+.hp-field { position: absolute; left: -9999px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
 .bv-confirm { display: flex; align-items: flex-start; gap: 10px; margin: 18px 0 0; font-size: 14px; color: #3a4252; line-height: 1.45; cursor: pointer; }
 .bv-confirm input { width: 19px; height: 19px; flex: none; margin-top: 1px; accent-color: #16a34a; cursor: pointer; }
 .bv-confirm.invalid { color: #b91c1c; }

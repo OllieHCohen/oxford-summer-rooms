@@ -50,6 +50,8 @@
               <div class="field" id="bf-mobile"><label for="bMobile">Mobile <span class="req">*</span></label><input id="bMobile" type="tel" autocomplete="tel"><div class="field-error">Please enter your mobile number.</div></div>
             </div>
             <div class="field"><label for="bNotes">Notes (optional)</label><textarea id="bNotes" rows="3" placeholder="Any notes — e.g. you'd prefer a virtual WhatsApp viewing instead. We can call you on WhatsApp."></textarea></div>
+            <!-- Honeypot: invisible to humans; bots that fill it are silently dropped server-side. -->
+            <div class="hp-field" aria-hidden="true"><label for="bWebsite">Website</label><input id="bWebsite" name="website" type="text" tabindex="-1" autocomplete="off"></div>
             <label class="bv-confirm" id="bf-dates"><input type="checkbox" id="bvDatesOk"><span>I've checked the available dates shown for each property above, and the start and end dates work for me.</span></label>
             <div class="notice notice-amber" id="bvError" style="display:none;margin:8px 0 0"></div>
             <button type="submit" class="btn btn-green btn-lg btn-block" id="bvSubmit" style="margin-top:16px">Book a viewing</button>
@@ -169,6 +171,7 @@
           headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             first_name: v('bFirst'), last_name: v('bLast'), email: v('bEmail'), mobile: v('bMobile'), notes: v('bNotes'),
+            website: v('bWebsite'),
             properties: sel.map(p => ({ id: p.id, address: p.address })), source: 'viewings-page'
           })
         });

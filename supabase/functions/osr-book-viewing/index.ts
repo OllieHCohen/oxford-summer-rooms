@@ -146,6 +146,32 @@ Deno.serve(async (req) => {
   if (!first || !last || !email || !mobile) return json({ error: "Please fill in your name, email and mobile." }, 400);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "Please enter a valid email." }, 400);
 
+  // --- spam filtering ---
+  // Honeypot: the hidden "website" field is invisible to humans. If a bot
+  // filled it, pretend everything worked but save/notify nothing.
+  if (String(body.website ?? "").trim() !== "") {
+    const fake = nextViewing();
+    return json({ ok: true, viewing_label: fake.label, viewing_date: fake.date });
+  }
+  // Gibberish names (e.g. "FmEeqOMTvacHZkGts"): random mixed-case strings with
+  // several capitals mid-word, or absurdly long single words. Real names —
+  // including McDonald, O'Brien or ALL-CAPS entries — pass.
+  const looksGibberish = (s: string) =>
+    s.split(/\s+/).some((w) => {
+      const letters = w.replace(/[^A-Za-z]/g, "");
+      if (letters.length > 20) return true;
+      const midCaps = letters.slice(1).replace(/[^A-Z]/g, "").length;
+      return /[a-z]/.test(letters) && /[A-Z]/.test(letters) && midCaps >= 3;
+    });
+  if (looksGibberish(first) || looksGibberish(last)) {
+    return json({ error: "Please enter your real name." }, 400);
+  }
+  // Digits-only "notes" are classic bot filler; humans write words.
+  const rawNotes = String(body.notes ?? "").trim();
+  if (rawNotes && /^[\d\s.,-]{6,}$/.test(rawNotes)) {
+    return json({ error: "Please write your note as text, or leave it empty." }, 400);
+  }
+
   // Selected properties. The multi-select page sends `properties: [{id, address}]`;
   // the legacy modal sends a single property_id/property_address. First = meeting point.
   const rawProps = Array.isArray(body.properties) ? body.properties : [];
